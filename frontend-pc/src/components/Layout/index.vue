@@ -39,10 +39,6 @@
 
         <!-- 运营方菜单 -->
         <template v-else-if="userStore.userRole === 'operator'">
-          <el-menu-item index="/operator/profile">
-            <el-icon><Avatar /></el-icon>
-            <template #title>个人中心</template>
-          </el-menu-item>
           
           <el-menu-item index="/operator/products">
             <el-icon><ShoppingBag /></el-icon>
@@ -58,6 +54,11 @@
             <el-icon><UserFilled /></el-icon>
             <template #title>积分管理</template>
           </el-menu-item>
+
+          <el-menu-item index="/operator/profile">
+            <el-icon><Avatar /></el-icon>
+            <template #title>个人中心</template>
+          </el-menu-item>
         </template>
 
         <!-- 普通用户菜单 -->
@@ -67,9 +68,9 @@
             <template #title>运营方列表</template>
           </el-menu-item>
           
-          <el-menu-item index="/user/applications">
-            <el-icon><UserFilled /></el-icon>
-            <template #title>我的申请</template>
+          <el-menu-item index="/user/products">
+            <el-icon><ShoppingBag /></el-icon>
+            <template #title>商品列表</template>
           </el-menu-item>
           
           <el-menu-item index="/user/orders">

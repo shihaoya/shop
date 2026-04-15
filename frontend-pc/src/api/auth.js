@@ -20,6 +20,11 @@ export const logout = () => {
   return request.post('/auth/logout')
 }
 
+// 获取用户信息
+export const getUserInfo = () => {
+  return request.get('/auth/profile')
+}
+
 // 修改密码
 export const changePassword = (data) => {
   return request.post('/auth/change-password', data)

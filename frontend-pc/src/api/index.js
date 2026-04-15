@@ -34,6 +34,15 @@ export function getTenantProducts(tenantId, params) {
   })
 }
 
+// 申请加入运营方（带理由）
+export function applyJoinTenantWithReason(tenantId, data) {
+  return request({
+    url: `/user/tenants/${tenantId}/apply`,
+    method: 'post',
+    data
+  })
+}
+
 export function getProductById(id) {
   return request({
     url: `/operator/products/${id}`,
@@ -147,6 +156,39 @@ export function getPointsUsers(params) {
     url: '/operator/points/users',
     method: 'get',
     params
+  })
+}
+
+// 运营方用户管理
+export function getOperatorUsers(params) {
+  return request({
+    url: '/operator/users',
+    method: 'get',
+    params
+  })
+}
+
+// 申请审核
+export function getPendingApplications(params) {
+  return request({
+    url: '/operator/users/applications/pending',
+    method: 'get',
+    params
+  })
+}
+
+export function approveApplication(relationId) {
+  return request({
+    url: `/operator/users/applications/${relationId}/approve`,
+    method: 'post'
+  })
+}
+
+export function rejectApplication(relationId, data) {
+  return request({
+    url: `/operator/users/applications/${relationId}/reject`,
+    method: 'post',
+    data
   })
 }
 

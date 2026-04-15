@@ -8,6 +8,9 @@ export const useTenantStore = defineStore('tenant', () => {
   // 当前选中的运营方信息
   const currentTenantInfo = ref(JSON.parse(localStorage.getItem('currentTenantInfo') || 'null'))
   
+  // 当前运营方名称
+  const currentTenantName = computed(() => currentTenantInfo.value?.name || '')
+  
   // 是否已选择运营方
   const hasSelectedTenant = computed(() => !!currentTenantId.value)
   
@@ -38,6 +41,7 @@ export const useTenantStore = defineStore('tenant', () => {
   return {
     currentTenantId,
     currentTenantInfo,
+    currentTenantName,
     hasSelectedTenant,
     setCurrentTenant,
     clearCurrentTenant

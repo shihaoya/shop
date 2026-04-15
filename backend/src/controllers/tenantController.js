@@ -202,7 +202,7 @@ exports.getTenantById = async (req, res) => {
 exports.getTenantProducts = async (req, res) => {
   try {
     const { id: tenantId } = req.params;
-    const { page = 1, pageSize = 20 } = req.query;
+    const { page = 1, pageSize = 20, keyword, category } = req.query;
     const userId = req.user.id;
     const offset = (page - 1) * pageSize;
 
@@ -222,13 +222,26 @@ exports.getTenantProducts = async (req, res) => {
       });
     }
 
+    // 构建查询条件
+    const where = {
+      tenantId,
+      status: 'active',
+      isDeleted: 0
+    };
+
+    // 商品名称搜索
+    if (keyword) {
+      where.name = { [Op.like]: `%${keyword}%` };
+    }
+
+    // 分类筛选
+    if (category) {
+      where.category = category;
+    }
+
     // 查询该租户的上架商品
     const { count, rows } = await Product.findAndCountAll({
-      where: {
-        tenantId,
-        status: 'active',
-        isDeleted: 0
-      },
+      where,
       order: [['createdAt', 'DESC']],
       limit: parseInt(pageSize),
       offset: offset

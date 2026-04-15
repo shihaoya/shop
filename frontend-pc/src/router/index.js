@@ -72,16 +72,16 @@ const routes = [
     meta: { requiresAuth: true, role: 'operator' },
     children: [
       {
-        path: 'profile',
-        name: 'OperatorProfile',
-        component: () => import('@/views/User/Profile.vue'),
-        meta: { title: '个人中心' }
-      },
-      {
         path: 'dashboard',
         name: 'OperatorDashboard',
         component: () => import('@/views/Operator/Dashboard.vue'),
         meta: { title: '工作台' }
+      },
+      {
+        path: 'profile',
+        name: 'OperatorProfile',
+        component: () => import('@/views/User/Profile.vue'),
+        meta: { title: '个人中心' }
       },
       {
         path: 'products',
@@ -116,16 +116,10 @@ const routes = [
         meta: { title: '运营方列表' }
       },
       {
-        path: 'products/:tenantId',
+        path: 'products',
         name: 'UserProducts',
-        component: () => import('@/views/User/Products.vue'),
+        component: () => import('@/views/User/ProductsList.vue'),
         meta: { title: '商品列表' }
-      },
-      {
-        path: 'applications',
-        name: 'MyApplications',
-        component: () => import('@/views/User/Applications.vue'),
-        meta: { title: '我的申请' }
       },
       {
         path: 'orders',

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { login as loginApi, logout as logoutApi } from '@/api/auth'
+import { login as loginApi, logout as logoutApi, getUserInfo as getUserInfoApi } from '@/api/auth'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('token') || '')
@@ -40,12 +40,25 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // 获取用户信息
+  const getUserInfo = async () => {
+    try {
+      const res = await getUserInfoApi()
+      userInfo.value = res.data
+      localStorage.setItem('user', JSON.stringify(res.data))
+      return res
+    } catch (error) {
+      throw error
+    }
+  }
+
   return {
     token,
     userInfo,
     isLoggedIn,
     userRole,
     login,
-    logout
+    logout,
+    getUserInfo
   }
 })
