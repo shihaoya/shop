@@ -9,6 +9,7 @@ router.use(requireRole('operator'));
 
 // 用户管理（静态路由在前）
 router.get('/', operatorUserController.getUsers);
+router.get('/available', operatorUserController.getAvailableUsers); // 获取可添加的用户
 router.post('/add-existing', operatorUserController.addExistingUser);
 router.post('/create-new', operatorUserController.createNewUser);
 router.get('/trash/list', operatorUserController.getTrashUsers);

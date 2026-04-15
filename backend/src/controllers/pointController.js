@@ -1,4 +1,5 @@
 const { User, Tenant, UserTenantRelation, PointTransaction } = require('../models');
+const MessageService = require('../services/messageService');
 const { Op } = require('sequelize');
 const { logger } = require('../middlewares/logger');
 const { success, error } = require('../utils/response');
@@ -166,6 +167,10 @@ exports.addPoints = async (req, res) => {
     await transaction.commit();
 
     logger.info(`运营方 ${operatorId} 给用户 ${userId} 增加 ${points} 积分`);
+
+    // 发送积分充值消息
+    const operator = await User.findByPk(operatorId);
+    MessageService.notifyPointsAdded(userId, points, newBalance, operator?.nickname || operator?.username || '系统');
 
     return success(res, {
       userId,

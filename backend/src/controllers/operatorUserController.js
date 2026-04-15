@@ -20,16 +20,69 @@ async function getOperatorTenantId(userId) {
 }
 
 /**
+ * 获取可添加的用户列表（用于下拉选择）
+ */
+exports.getAvailableUsers = async (req, res) => {
+  try {
+    const operatorId = req.user.id;
+    const { keyword, pageSize = 20 } = req.query;
+
+    // 获取租户ID
+    const tenantId = await getOperatorTenantId(operatorId);
+
+    // 获取已在此租户中的用户ID
+    const existingRelations = await UserTenantRelation.findAll({
+      where: {
+        tenantId,
+        isDeleted: 0
+      },
+      attributes: ['userId']
+    });
+    const existingUserIds = existingRelations.map(r => r.userId);
+
+    // 构建查询条件
+    const where = {
+      isDeleted: 0,
+      id: {
+        [Op.notIn]: existingUserIds.length > 0 ? existingUserIds : [0]
+      }
+    };
+
+    // 关键词搜索
+    if (keyword) {
+      where.username = { [Op.like]: `%${keyword}%` };
+    }
+
+    // 查询用户
+    const users = await User.findAll({
+      where,
+      attributes: ['id', 'username', 'nickname'],
+      limit: parseInt(pageSize),
+      order: [['createdAt', 'DESC']]
+    });
+
+    return success(res, {
+      list: users,
+      total: users.length
+    });
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
+    logger.error(`获取可添加用户失败: ${errorMsg}`);
+    return error(res, errorMsg || '获取失败', 500);
+  }
+};
+
+/**
  * 添加已注册用户
  */
 exports.addExistingUser = async (req, res) => {
   try {
     const operatorId = req.user.id;
-    const { username, initialPoints } = req.body;
+    const { userId, initialPoints } = req.body;
 
     // 验证参数
-    if (!username || initialPoints === undefined) {
-      return error(res, '用户名和初始积分为必填项', 400);
+    if (!userId || initialPoints === undefined || initialPoints === null) {
+      return error(res, '用户ID和初始积分为必填项', 400);
     }
 
     if (initialPoints < 0) {
@@ -38,7 +91,7 @@ exports.addExistingUser = async (req, res) => {
 
     // 查找用户
     const user = await User.findOne({
-      where: { username, isDeleted: 0 }
+      where: { id: userId, isDeleted: 0 }
     });
 
     if (!user) {

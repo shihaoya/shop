@@ -44,6 +44,17 @@
         </div>
         
         <div class="header-right">
+          <!-- 消息通知 -->
+          <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="message-badge">
+            <el-icon 
+              class="message-icon" 
+              @click="goToMessages"
+              :size="20"
+            >
+              <Bell />
+            </el-icon>
+          </el-badge>
+          
           <!-- 普通用户：运营方切换下拉框 -->
           <el-select 
             v-if="userStore.userRole === 'user'" 
@@ -107,8 +118,10 @@ import { useTenantStore } from '@/store/tenant'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import ChangePassword from '@/components/Common/ChangePassword.vue'
 import { getMyApplications } from '@/api'
+import { getUnreadCount } from '@/api/message'
 import { routes } from '@/router'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import { Fold, Expand, Bell, ArrowDown, Lock, SwitchButton } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -119,6 +132,7 @@ const isCollapse = ref(false)
 const showChangePassword = ref(false)
 const selectedTenantId = ref(null)
 const approvedTenants = ref([])
+const unreadCount = ref(0)
 
 const activeMenu = computed(() => route.path)
 
@@ -225,6 +239,35 @@ const handlePasswordSuccess = () => {
     router.push('/login')
   }, 3000)
 }
+
+// 获取未读消息数量
+const fetchUnreadCount = async () => {
+  try {
+    const res = await getUnreadCount()
+    if (res.code === 200) {
+      unreadCount.value = res.data.unreadCount
+    }
+  } catch (error) {
+    console.error('获取未读消息数量失败:', error)
+  }
+}
+
+// 跳转到消息中心
+const goToMessages = () => {
+  const role = userStore.userRole
+  router.push(`/${role}/messages`)
+}
+
+// 初始化
+onMounted(() => {
+  if (userStore.userRole === 'user') {
+    loadApprovedTenants()
+  }
+  // 获取未读消息数量
+  fetchUnreadCount()
+  // 每30秒刷新一次未读数量
+  setInterval(fetchUnreadCount, 30000)
+})
 </script>
 
 <style scoped>
@@ -315,6 +358,20 @@ const handlePasswordSuccess = () => {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+.message-badge {
+  cursor: pointer;
+}
+
+.message-icon {
+  color: #606266;
+  transition: color 0.3s;
+}
+
+.message-icon:hover {
+  color: #667eea;
 }
 
 .user-info {

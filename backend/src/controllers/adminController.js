@@ -1,4 +1,5 @@
 const adminService = require('../services/adminService');
+const MessageService = require('../services/messageService');
 const { success, error } = require('../utils/response');
 const { logger } = require('../middlewares/logger');
 
@@ -39,7 +40,10 @@ const approveTenant = async (req, res) => {
     const { id } = req.params;
     const adminUserId = req.user.id;
     
-    await adminService.approveTenant(id, adminUserId);
+    const tenant = await adminService.approveTenant(id, adminUserId);
+    
+    // 发送审核通过消息
+    MessageService.notifyTenantApproved(tenant.userId, tenant.name);
     
     return success(res, null, '审核通过');
   } catch (err) {
@@ -58,7 +62,10 @@ const rejectTenant = async (req, res) => {
     const { reason } = req.body;
     const adminUserId = req.user.id;
     
-    await adminService.rejectTenant(id, reason, adminUserId);
+    const tenant = await adminService.rejectTenant(id, reason, adminUserId);
+    
+    // 发送审核拒绝消息
+    MessageService.notifyTenantRejected(tenant.userId, tenant.name, reason);
     
     return success(res, null, '已拒绝');
   } catch (err) {

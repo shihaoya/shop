@@ -7,6 +7,8 @@ const Product = require('./Product');
 const PointTransaction = require('./PointTransaction');
 const TenantAuditHistory = require('./TenantAuditHistory');
 const Order = require('./Order');
+const Message = require('./Message');
+const Upload = require('./Upload');
 
 // 定义关联关系
 User.hasOne(Tenant, { foreignKey: 'userId', as: 'tenant' });
@@ -37,12 +39,19 @@ TenantAuditHistory.belongsTo(User, { foreignKey: 'auditorId', as: 'auditor' });
 // 订单关联
 User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
 Order.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-
+  
 Tenant.hasMany(Order, { foreignKey: 'tenantId', as: 'orders' });
 Order.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
-
+  
 Product.hasMany(Order, { foreignKey: 'productId', as: 'orders' });
 Order.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+  
+// 消息关联
+User.hasMany(Message, { foreignKey: 'userId', as: 'messages' });
+Message.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+  
+Tenant.hasMany(Message, { foreignKey: 'tenantId', as: 'messages' });
+Message.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 
 module.exports = {
   sequelize,
@@ -53,5 +62,7 @@ module.exports = {
   Product,
   PointTransaction,
   TenantAuditHistory,
-  Order
+  Order,
+  Message,
+  Upload
 };

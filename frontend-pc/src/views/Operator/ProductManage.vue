@@ -112,8 +112,23 @@
             placeholder="请输入商品描述"
           />
         </el-form-item>
-        <el-form-item label="图片URL" prop="imageUrl">
-          <el-input v-model="formData.imageUrl" placeholder="请输入图片URL（可选）" />
+        <el-form-item label="商品图片">
+          <div class="upload-wrapper">
+            <div class="product-image-uploader avatar-uploader">
+              <el-upload
+                name="image"
+                action="/api/v1/operator/products/upload"
+                :show-file-list="false"
+                :on-success="handleImageSuccess"
+                :before-upload="beforeImageUpload"
+                :headers="uploadHeaders"
+              >
+                <img v-if="formData.imageUrl" :src="getImageUrl(formData.imageUrl)" class="avatar" />
+                <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+              </el-upload>
+            </div>
+            <div class="upload-tip">支持 jpg、png 格式，大小不超过 5MB</div>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -127,11 +142,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { getProducts, createProduct, updateProduct, updateProductStatus, deleteProduct } from '@/api'
+import { useUserStore } from '@/store/user'
 import dayjs from 'dayjs'
+
+const userStore = useUserStore()
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -324,6 +342,48 @@ const formatTime = (time) => {
   return time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
 }
 
+// 上传请求头（携带Token）
+const uploadHeaders = computed(() => ({
+  Authorization: `Bearer ${userStore.token}`
+}))
+
+// 图片上传前验证
+const beforeImageUpload = (file) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt5M = file.size / 1024 / 1024 < 5
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件！')
+    return false
+  }
+  if (!isLt5M) {
+    ElMessage.error('图片大小不能超过 5MB！')
+    return false
+  }
+  return true
+}
+
+// 图片上传成功
+const handleImageSuccess = (response) => {
+  if (response.code === 200) {
+    formData.imageUrl = response.data.url
+    ElMessage.success('图片上传成功')
+  } else {
+    ElMessage.error(response.message || '上传失败')
+  }
+}
+
+// 获取完整的图片URL
+const getImageUrl = (url) => {
+  if (!url) return ''
+  // 如果已经是完整URL，直接返回
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  // 否则拼接后端地址
+  return `${import.meta.env.VITE_API_BASE_URL.replace('/api/v1', '')}${url}`
+}
+
 onMounted(() => {
   fetchData()
 })
@@ -342,5 +402,70 @@ onMounted(() => {
 
 .search-form {
   margin-bottom: 20px;
+}
+
+/* 强制表单项内容垂直布局 */
+:deep(.el-form-item__content) {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* 图片上传样式 */
+.upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.product-image-uploader {
+  display: inline-block;
+}
+
+:deep(.product-image-uploader .el-upload) {
+  width: 120px !important;
+  height: 120px !important;
+  border: 2px dashed #e4e7ed !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all 0.3s ease !important;
+  background-color: #fafafa !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+:deep(.product-image-uploader .el-upload:hover) {
+  border-color: #409eff !important;
+  background-color: #f5f7fa !important;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+.avatar-uploader-icon {
+  font-size: 24px !important;
+  color: #c0c4cc !important;
+  transition: all 0.3s ease !important;
+}
+
+:deep(.product-image-uploader .el-upload:hover .avatar-uploader-icon) {
+  color: #409eff !important;
+  transform: scale(1.1) !important;
+}
+
+.avatar {
+  width: 120px !important;
+  height: 120px !important;
+  display: block !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+  text-align: left;
 }
 </style>

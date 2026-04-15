@@ -45,7 +45,6 @@ CREATE TABLE IF NOT EXISTS `tenants` (
   `deleted_at` DATETIME DEFAULT NULL COMMENT '删除时间',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
   INDEX `idx_user_id` (`user_id`),
   INDEX `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户表';
@@ -65,8 +64,6 @@ CREATE TABLE IF NOT EXISTS `user_tenant_relations` (
   `deleted_at` DATETIME DEFAULT NULL COMMENT '删除时间',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE CASCADE,
   UNIQUE KEY `uk_user_tenant` (`user_id`, `tenant_id`),
   INDEX `idx_user_id` (`user_id`),
   INDEX `idx_tenant_id` (`tenant_id`)
@@ -90,7 +87,6 @@ CREATE TABLE IF NOT EXISTS `products` (
   `deleted_at` DATETIME DEFAULT NULL COMMENT '删除时间',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE CASCADE,
   INDEX `idx_tenant_id` (`tenant_id`),
   INDEX `idx_status` (`status`),
   INDEX `idx_category` (`category`)
@@ -111,8 +107,6 @@ CREATE TABLE IF NOT EXISTS `point_transactions` (
   `operator_name` VARCHAR(50) DEFAULT NULL COMMENT '操作人姓名',
   `related_order_id` INT UNSIGNED DEFAULT NULL COMMENT '关联订单ID（兑换时）',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE CASCADE,
   INDEX `idx_user_tenant` (`user_id`, `tenant_id`),
   INDEX `idx_created_at` (`created_at`),
   INDEX `idx_transaction_type` (`transaction_type`)
@@ -135,13 +129,34 @@ CREATE TABLE IF NOT EXISTS `operation_logs` (
   `ip_address` VARCHAR(50) DEFAULT NULL COMMENT 'IP地址',
   `user_agent` VARCHAR(255) DEFAULT NULL COMMENT '用户代理',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX `idx_user_id` (`user_id`),
   INDEX `idx_operation_type` (`operation_type`),
   INDEX `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志表';
 
 -- ============================================
--- 7. 租户审核历史表
+-- 7. 上传文件表
+-- ============================================
+CREATE TABLE IF NOT EXISTS `uploads` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '文件ID',
+  `file_name` VARCHAR(100) NOT NULL COMMENT '文件名',
+  `original_name` VARCHAR(255) NOT NULL COMMENT '原始文件名',
+  `file_path` VARCHAR(500) NOT NULL COMMENT '文件存储路径',
+  `file_size` INT UNSIGNED NOT NULL COMMENT '文件大小（字节）',
+  `file_type` VARCHAR(50) NOT NULL COMMENT '文件类型（mime type）',
+  `module` VARCHAR(50) NOT NULL COMMENT '所属模块（product/tenant/user等）',
+  `related_id` INT UNSIGNED DEFAULT NULL COMMENT '关联业务ID（如product_id）',
+  `related_type` VARCHAR(50) DEFAULT NULL COMMENT '关联业务类型（如product/tenant）',
+  `is_deleted` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  INDEX `idx_module` (`module`),
+  INDEX `idx_related` (`related_type`, `related_id`),
+  INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='上传文件表';
+
+-- ============================================
+-- 8. 租户审核历史表
 -- ============================================
 CREATE TABLE IF NOT EXISTS `tenant_audit_history` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '审核历史ID',
@@ -155,8 +170,6 @@ CREATE TABLE IF NOT EXISTS `tenant_audit_history` (
   `remark` TEXT DEFAULT NULL COMMENT '审核备注',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '审核时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`auditor_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
   INDEX `idx_tenant_id` (`tenant_id`),
   INDEX `idx_auditor_id` (`auditor_id`),
   INDEX `idx_audit_result` (`audit_result`),
@@ -164,7 +177,7 @@ CREATE TABLE IF NOT EXISTS `tenant_audit_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户审核历史表';
 
 -- ============================================
--- 8. 订单表
+-- 9. 订单表
 -- ============================================
 CREATE TABLE IF NOT EXISTS `orders` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '订单ID',
@@ -184,9 +197,6 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `is_deleted` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE,
   INDEX `idx_order_no` (`order_no`),
   INDEX `idx_user_id` (`user_id`),
   INDEX `idx_tenant_id` (`tenant_id`),
@@ -195,11 +205,40 @@ CREATE TABLE IF NOT EXISTS `orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
 
 -- ============================================
+-- 10. 消息通知表
+-- ============================================
+CREATE TABLE IF NOT EXISTS `messages` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '消息ID',
+  `user_id` INT UNSIGNED NOT NULL COMMENT '接收用户ID',
+  `tenant_id` INT UNSIGNED DEFAULT NULL COMMENT '关联租户ID（可选）',
+  `title` VARCHAR(200) NOT NULL COMMENT '消息标题',
+  `content` TEXT NOT NULL COMMENT '消息内容',
+  `type` ENUM('system', 'order', 'point', 'audit', 'announcement') NOT NULL DEFAULT 'system' COMMENT '消息类型',
+  `related_id` INT UNSIGNED DEFAULT NULL COMMENT '关联业务ID（如订单ID、流水ID等）',
+  `related_type` VARCHAR(50) DEFAULT NULL COMMENT '关联业务类型（如order、transaction等）',
+  `is_read` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否已读：0-未读，1-已读',
+  `read_at` DATETIME DEFAULT NULL COMMENT '阅读时间',
+  `sender_id` INT UNSIGNED DEFAULT NULL COMMENT '发送者ID（系统消息为null）',
+  `sender_name` VARCHAR(50) DEFAULT NULL COMMENT '发送者名称',
+  `priority` ENUM('low', 'normal', 'high', 'urgent') NOT NULL DEFAULT 'normal' COMMENT '优先级',
+  `expire_at` DATETIME DEFAULT NULL COMMENT '过期时间（null表示不过期）',
+  `is_deleted` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_tenant_id` (`tenant_id`),
+  INDEX `idx_type` (`type`),
+  INDEX `idx_is_read` (`is_read`),
+  INDEX `idx_created_at` (`created_at`),
+  INDEX `idx_priority` (`priority`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息通知表';
+
+-- ============================================
 -- 初始化数据
 -- ============================================
 
 -- 插入默认管理员账号（密码: Admin@123456）
 -- 注意：实际使用时需要用bcrypt加密后的密码替换下面的哈希值
 INSERT INTO `users` (`username`, `password`, `nickname`, `role`, `status`) 
-VALUES ('admin', '$2a$10$YourHashedPasswordHere', '系统管理员', 'admin', 1)
+VALUES ('admin', '$2a$10$oVTDJmVh5zpOvRdq6Wd.3uLspA6TYIDzOPs24qd/G96E9qLZ/IWr2', '系统管理员', 'admin', 1)
 ON DUPLICATE KEY UPDATE `username` = `username`;

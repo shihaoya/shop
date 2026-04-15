@@ -11,5 +11,20 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
-app.use(ElementPlus, { locale: zhCn })
+app.use(ElementPlus, { 
+  locale: zhCn,
+  // 全局配置：禁止 ESC 和点击遮罩关闭弹框
+  ElMessageBox: {
+    closeOnClickModal: false,
+    closeOnPressEscape: false
+  },
+  ElDialog: {
+    closeOnClickModal: false,
+    closeOnPressEscape: false
+  },
+  ElDrawer: {
+    closeOnClickModal: false,
+    closeOnPressEscape: false
+  }
+})
 app.mount('#app')

@@ -1,4 +1,5 @@
 const { Order, Product, User, Tenant, PointTransaction } = require('../models');
+const MessageService = require('../services/messageService');
 const { Op } = require('sequelize');
 const { logger } = require('../middlewares/logger');
 
@@ -49,7 +50,8 @@ exports.createOrder = async (req, res) => {
       where: {
         userId,
         tenantId: product.tenantId,
-        status: 'approved'
+        status: 'approved',
+        isDeleted: 0
       }
     });
 
@@ -60,13 +62,13 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    const totalPoints = product.pointsCost * quantity;
+    const totalPoints = product.pointsRequired * quantity;
 
     // 检查积分是否足够
-    if (userTenantRelation.points < totalPoints) {
+    if (userTenantRelation.pointsBalance < totalPoints) {
       return res.status(400).json({
         code: 400,
-        message: `积分不足，需要 ${totalPoints} 积分，当前余额 ${userTenantRelation.points} 积分`
+        message: `积分不足，需要 ${totalPoints} 积分，当前余额 ${userTenantRelation.pointsBalance} 积分`
       });
     }
 
@@ -81,7 +83,7 @@ exports.createOrder = async (req, res) => {
         tenantId: product.tenantId,
         productId,
         productName: product.name,
-        pointsCost: product.pointsCost,
+        pointsCost: product.pointsRequired,
         quantity,
         totalPoints,
         status: 'pending',
@@ -95,22 +97,26 @@ exports.createOrder = async (req, res) => {
       await product.decrement('stock', { by: quantity, transaction });
 
       // 3. 扣减用户积分
-      await userTenantRelation.decrement('points', { by: totalPoints, transaction });
+      await userTenantRelation.decrement('pointsBalance', { by: totalPoints, transaction });
 
       // 4. 记录积分流水
       await PointTransaction.create({
         userId,
         tenantId: product.tenantId,
-        type: 'exchange',
-        amount: -totalPoints,
-        balance: userTenantRelation.points - totalPoints,
-        description: `兑换商品：${product.name} x${quantity}`,
+        transactionType: 'exchange',
+        pointsChange: -totalPoints,
+        balanceAfter: userTenantRelation.pointsBalance - totalPoints,
+        reason: `兑换商品：${product.name} x${quantity}`,
+        operatorId: userId,
         relatedOrderId: order.id
       }, { transaction });
 
       await transaction.commit();
 
       logger.info(`用户 ${userId} 成功创建订单 ${order.orderNo}，消耗积分：${totalPoints}`);
+
+      // 发送订单创建成功消息
+      MessageService.notifyOrderCreated(order);
 
       return res.json({
         code: 200,
@@ -416,29 +422,33 @@ exports.cancelOrder = async (req, res) => {
 
       // 2. 恢复库存
       const product = await Product.findByPk(order.productId, { transaction });
-      await product.increment('stock', { by: order.quantity, transaction });
+      if (product) {
+        await product.increment('stock', { by: order.quantity, transaction });
+      }
 
       // 3. 恢复用户积分
       const userTenantRelation = await require('../models').UserTenantRelation.findOne({
         where: {
           userId,
           tenantId: order.tenantId,
-          status: 'approved'
+          status: 'approved',
+          isDeleted: 0
         },
         transaction
       });
 
       if (userTenantRelation) {
-        await userTenantRelation.increment('points', { by: order.totalPoints, transaction });
+        await userTenantRelation.increment('pointsBalance', { by: order.totalPoints, transaction });
 
         // 4. 记录积分流水
         await PointTransaction.create({
           userId,
           tenantId: order.tenantId,
-          type: 'refund',
-          amount: order.totalPoints,
-          balance: userTenantRelation.points + order.totalPoints,
-          description: `订单取消退款：${order.orderNo}`,
+          transactionType: 'subtract',
+          pointsChange: order.totalPoints,
+          balanceAfter: userTenantRelation.pointsBalance + order.totalPoints,
+          reason: `订单取消退款：${order.orderNo}`,
+          operatorId: userId,
           relatedOrderId: order.id
         }, { transaction });
       }
@@ -446,6 +456,9 @@ exports.cancelOrder = async (req, res) => {
       await transaction.commit();
 
       logger.info(`用户 ${userId} 取消订单 ${order.orderNo}`);
+
+      // 发送订单取消消息
+      MessageService.notifyOrderCancelled(order);
 
       return res.json({
         code: 200,

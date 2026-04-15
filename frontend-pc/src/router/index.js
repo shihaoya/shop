@@ -62,6 +62,12 @@ const routes = [
         name: 'AdminProductManage',
         component: () => import('@/views/Admin/ProductManage.vue'),
         meta: { title: '上架商品管理', icon: 'ShoppingBag' }
+      },
+      {
+        path: 'messages',
+        name: 'AdminMessages',
+        component: () => import('@/views/Common/MessageCenter.vue'),
+        meta: { title: '消息中心', icon: 'Bell' }
       }
     ]
   },
@@ -100,6 +106,12 @@ const routes = [
         name: 'OperatorProfile',
         component: () => import('@/views/User/Profile.vue'),
         meta: { title: '个人中心', icon: 'Avatar' }
+      },
+      {
+        path: 'messages',
+        name: 'OperatorMessages',
+        component: () => import('@/views/Common/MessageCenter.vue'),
+        meta: { title: '消息中心', icon: 'Bell' }
       }
     ]
   },
@@ -132,6 +144,12 @@ const routes = [
         name: 'UserProfile',
         component: () => import('@/views/User/Profile.vue'),
         meta: { title: '个人中心', icon: 'Avatar' }
+      },
+      {
+        path: 'messages',
+        name: 'UserMessages',
+        component: () => import('@/views/Common/MessageCenter.vue'),
+        meta: { title: '消息中心', icon: 'Bell' }
       }
     ]
   }

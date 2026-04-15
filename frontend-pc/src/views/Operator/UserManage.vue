@@ -108,10 +108,29 @@
     </el-card>
 
     <!-- 添加已注册用户对话框 -->
-    <el-dialog v-model="addExistingVisible" title="添加已注册用户" width="500px">
+    <el-dialog v-model="addExistingVisible" title="添加已注册用户" width="600px">
       <el-form ref="addExistingFormRef" :model="addExistingForm" :rules="addExistingRules" label-width="100px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="addExistingForm.username" placeholder="请输入用户名" />
+        <el-form-item label="选择用户" prop="userId">
+          <el-select
+            v-model="addExistingForm.userId"
+            filterable
+            remote
+            reserve-keyword
+            placeholder="请输入用户名搜索"
+            :remote-method="searchUsers"
+            :loading="userSearchLoading"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="user in availableUsers"
+              :key="user.id"
+              :label="`${user.username}${user.nickname ? '(' + user.nickname + ')' : ''}`"
+              :value="user.id"
+            >
+              <span style="float: left">{{ user.username }}</span>
+              <span style="float: right; color: #8492a6; font-size: 13px">{{ user.nickname || '' }}</span>
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="初始积分" prop="initialPoints">
           <el-input-number v-model="addExistingForm.initialPoints" :min="0" style="width: 100%" />
@@ -188,7 +207,8 @@ import {
   createNewUser, 
   removeUser,
   approveApplication,
-  rejectApplication
+  rejectApplication,
+  getAvailableUsers
 } from '@/api'
 import dayjs from 'dayjs'
 
@@ -216,8 +236,12 @@ const tableData = ref([])
 const currentAuditUser = ref(null)
 const auditAction = ref('approve') // approve, reject, revoke
 
+// 用户搜索相关
+const availableUsers = ref([])
+const userSearchLoading = ref(false)
+
 const addExistingForm = reactive({
-  username: '',
+  userId: null,
   initialPoints: 0
 })
 
@@ -233,7 +257,7 @@ const auditForm = reactive({
 })
 
 const addExistingRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  userId: [{ required: true, message: '请选择用户', trigger: 'change' }],
   initialPoints: [{ required: true, message: '请输入初始积分', trigger: 'blur' }]
 }
 
@@ -308,8 +332,31 @@ const handlePageChange = (page) => {
 
 // 显示添加已注册用户对话框
 const showAddExistingDialog = () => {
-  Object.assign(addExistingForm, { username: '', initialPoints: 0 })
+  Object.assign(addExistingForm, { userId: null, initialPoints: 0 })
+  availableUsers.value = []
   addExistingVisible.value = true
+}
+
+// 远程搜索用户
+const searchUsers = async (query) => {
+  if (!query || query.trim() === '') {
+    availableUsers.value = []
+    return
+  }
+  
+  userSearchLoading.value = true
+  try {
+    const res = await getAvailableUsers({ keyword: query, pageSize: 20 })
+    if (res.code === 200) {
+      // 过滤掉已经在本租户中的用户
+      const existingUserIds = tableData.value.map(u => u.id)
+      availableUsers.value = res.data.list.filter(user => !existingUserIds.includes(user.id))
+    }
+  } catch (error) {
+    ElMessage.error('搜索用户失败')
+  } finally {
+    userSearchLoading.value = false
+  }
 }
 
 // 显示创建新用户对话框
@@ -332,7 +379,17 @@ const submitAddExisting = async () => {
     
     submitLoading.value = true
     try {
-      await addExistingUser(addExistingForm)
+      // 获取选中的用户信息
+      const selectedUser = availableUsers.value.find(u => u.id === addExistingForm.userId)
+      if (!selectedUser) {
+        ElMessage.error('请选择有效的用户')
+        return
+      }
+      
+      await addExistingUser({
+        userId: addExistingForm.userId,
+        initialPoints: addExistingForm.initialPoints
+      })
       ElMessage.success('添加成功')
       addExistingVisible.value = false
       fetchData()

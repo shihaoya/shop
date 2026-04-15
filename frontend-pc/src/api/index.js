@@ -105,6 +105,15 @@ export function getUsers(params) {
   })
 }
 
+// 获取可添加的用户列表（用于下拉选择）
+export function getAvailableUsers(params) {
+  return request({
+    url: '/operator/users/available',
+    method: 'get',
+    params
+  })
+}
+
 export function getUserDetail(userId) {
   return request({
     url: `/operator/users/${userId}`,
