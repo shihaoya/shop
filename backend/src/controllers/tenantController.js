@@ -225,7 +225,7 @@ exports.getTenantProducts = async (req, res) => {
     // 构建查询条件
     const where = {
       tenantId,
-      status: 'active',
+      status: 'on_shelf',
       isDeleted: 0
     };
 

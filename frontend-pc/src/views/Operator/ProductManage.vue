@@ -34,6 +34,19 @@
       <!-- 商品列表 -->
       <el-table :data="tableData" v-loading="loading" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column label="商品图片" width="120">
+          <template #default="{ row }">
+            <el-image 
+              v-if="row.imageUrl" 
+              :src="getImageUrl(row.imageUrl)" 
+              style="width: 80px; height: 80px"
+              fit="cover"
+              :preview-src-list="[getImageUrl(row.imageUrl)]"
+              preview-teleported
+            />
+            <span v-else class="no-image">暂无图片</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="name" label="商品名称" min-width="150" />
         <el-table-column prop="category" label="分类" width="120" />
         <el-table-column prop="pointsRequired" label="所需积分" width="120" />
@@ -91,6 +104,7 @@
         :model="formData"
         :rules="formRules"
         label-width="100px"
+        class="product-form"
       >
         <el-form-item label="商品名称" prop="name">
           <el-input v-model="formData.name" placeholder="请输入商品名称" />
@@ -404,8 +418,13 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-/* 强制表单项内容垂直布局 */
-:deep(.el-form-item__content) {
+.no-image {
+  color: #909399;
+  font-size: 12px;
+}
+
+/* 商品表单垂直布局（仅针对弹框中的表单） */
+.product-form :deep(.el-form-item__content) {
   flex-direction: column;
   align-items: flex-start;
 }

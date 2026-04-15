@@ -41,13 +41,14 @@
         <el-table-column label="商品图片" width="120">
           <template #default="{ row }">
             <el-image 
-              v-if="row.image" 
-              :src="row.image" 
+              v-if="row.imageUrl" 
+              :src="getImageUrl(row.imageUrl)" 
               style="width: 80px; height: 80px"
               fit="cover"
-              :preview-src-list="[row.image]"
+              :preview-src-list="[getImageUrl(row.imageUrl)]"
+              preview-teleported
             />
-            <span v-else>暂无图片</span>
+            <span v-else class="no-image">暂无图片</span>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="商品名称" min-width="150" />
@@ -315,6 +316,16 @@ const getCategoryText = (category) => {
   return map[category] || category
 }
 
+// 获取图片完整URL
+const getImageUrl = (url) => {
+  if (!url) return ''
+  // 如果是相对路径，添加API基础URL
+  if (url.startsWith('/')) {
+    return import.meta.env.VITE_API_BASE_URL.replace('/api/v1', '') + url
+  }
+  return url
+}
+
 onMounted(() => {
   fetchData()
   
@@ -340,6 +351,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.no-image {
+  color: #909399;
+  font-size: 12px;
 }
 
 .tenant-info .label {
