@@ -14,20 +14,59 @@
         router
         class="sidebar-menu"
       >
-        <el-menu-item index="/admin/dashboard">
-          <el-icon><HomeFilled /></el-icon>
-          <template #title>工作台</template>
-        </el-menu-item>
-        
-        <el-menu-item index="/admin/audit">
-          <el-icon><UserFilled /></el-icon>
-          <template #title>运营方审核</template>
-        </el-menu-item>
-        
-        <el-menu-item index="/admin/users">
-          <el-icon><Avatar /></el-icon>
-          <template #title>用户管理</template>
-        </el-menu-item>
+        <!-- 管理员菜单 -->
+        <template v-if="userStore.userRole === 'admin'">
+          <el-menu-item index="/admin/dashboard">
+            <el-icon><HomeFilled /></el-icon>
+            <template #title>工作台</template>
+          </el-menu-item>
+          
+          <el-menu-item index="/admin/audit">
+            <el-icon><UserFilled /></el-icon>
+            <template #title>运营方审核</template>
+          </el-menu-item>
+          
+          <el-menu-item index="/admin/users">
+            <el-icon><Avatar /></el-icon>
+            <template #title>用户管理</template>
+          </el-menu-item>
+        </template>
+
+        <!-- 运营方菜单 -->
+        <template v-else-if="userStore.userRole === 'operator'">
+          <el-menu-item index="/operator/products">
+            <el-icon><ShoppingBag /></el-icon>
+            <template #title>商品管理</template>
+          </el-menu-item>
+          
+          <el-menu-item index="/operator/users">
+            <el-icon><Avatar /></el-icon>
+            <template #title>用户管理</template>
+          </el-menu-item>
+          
+          <el-menu-item index="/operator/points">
+            <el-icon><UserFilled /></el-icon>
+            <template #title>积分管理</template>
+          </el-menu-item>
+        </template>
+
+        <!-- 普通用户菜单 -->
+        <template v-else-if="userStore.userRole === 'user'">
+          <el-menu-item index="/user/tenants">
+            <el-icon><HomeFilled /></el-icon>
+            <template #title>运营方列表</template>
+          </el-menu-item>
+          
+          <el-menu-item index="/user/applications">
+            <el-icon><UserFilled /></el-icon>
+            <template #title>我的申请</template>
+          </el-menu-item>
+          
+          <el-menu-item index="/user/profile">
+            <el-icon><Avatar /></el-icon>
+            <template #title>个人中心</template>
+          </el-menu-item>
+        </template>
       </el-menu>
     </el-aside>
 

@@ -43,6 +43,58 @@ const routes = [
         meta: { title: '用户管理' }
       }
     ]
+  },
+  // 运营方路由
+  {
+    path: '/operator',
+    component: () => import('@/components/Layout/index.vue'),
+    meta: { requiresAuth: true, role: 'operator' },
+    children: [
+      {
+        path: 'products',
+        name: 'ProductManage',
+        component: () => import('@/views/Operator/ProductManage.vue'),
+        meta: { title: '商品管理' }
+      },
+      {
+        path: 'users',
+        name: 'OperatorUserManage',
+        component: () => import('@/views/Operator/UserManage.vue'),
+        meta: { title: '用户管理' }
+      },
+      {
+        path: 'points',
+        name: 'PointsManage',
+        component: () => import('@/views/Operator/PointsManage.vue'),
+        meta: { title: '积分管理' }
+      }
+    ]
+  },
+  // 普通用户路由
+  {
+    path: '/user',
+    component: () => import('@/components/Layout/index.vue'),
+    meta: { requiresAuth: true, role: 'user' },
+    children: [
+      {
+        path: 'tenants',
+        name: 'UserTenants',
+        component: () => import('@/views/User/Tenants.vue'),
+        meta: { title: '运营方列表' }
+      },
+      {
+        path: 'applications',
+        name: 'MyApplications',
+        component: () => import('@/views/User/Applications.vue'),
+        meta: { title: '我的申请' }
+      },
+      {
+        path: 'profile',
+        name: 'UserProfile',
+        component: () => import('@/views/User/Profile.vue'),
+        meta: { title: '个人中心' }
+      }
+    ]
   }
 ]
 
