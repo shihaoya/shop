@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { authenticate, requireRole } = require('../middlewares/auth');
+const { authMiddleware, requireRole } = require('../middlewares/auth');
 
 // 所有用户接口都需要user角色
-router.use(authenticate);
+router.use(authMiddleware);
 router.use(requireRole('user'));
 
 // 运营方列表

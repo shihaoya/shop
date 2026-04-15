@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const operatorUserController = require('../controllers/operatorUserController');
-const { authenticate, requireRole } = require('../middlewares/auth');
+const { authMiddleware, requireRole } = require('../middlewares/auth');
 
 // 所有用户管理接口都需要operator角色
-router.use(authenticate);
+router.use(authMiddleware);
 router.use(requireRole('operator'));
 
 // 用户管理

@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const tenantController = require('../controllers/tenantController');
-const { authenticate, requireRole } = require('../middlewares/auth');
+const { authMiddleware, requireRole } = require('../middlewares/auth');
 
 // 所有租户接口都需要认证
-router.use(authenticate);
+router.use(authMiddleware);
 
 // 获取租户列表（所有登录用户）
 router.get('/', tenantController.getTenants);
