@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS `user_tenant_relations` (
   `tenant_id` INT UNSIGNED NOT NULL COMMENT '租户ID',
   `status` ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending' COMMENT '申请状态',
   `points_balance` INT NOT NULL DEFAULT 0 COMMENT '在该租户下的积分余额',
+  `apply_reason` TEXT DEFAULT NULL COMMENT '申请理由',
+  `reject_reason` TEXT DEFAULT NULL COMMENT '拒绝理由',
   `is_deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
   `deleted_at` DATETIME DEFAULT NULL COMMENT '删除时间',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -160,6 +162,37 @@ CREATE TABLE IF NOT EXISTS `tenant_audit_history` (
   INDEX `idx_audit_result` (`audit_result`),
   INDEX `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户审核历史表';
+
+-- ============================================
+-- 8. 订单表
+-- ============================================
+CREATE TABLE IF NOT EXISTS `orders` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '订单ID',
+  `order_no` VARCHAR(50) NOT NULL UNIQUE COMMENT '订单号',
+  `user_id` INT UNSIGNED NOT NULL COMMENT '用户ID',
+  `tenant_id` INT UNSIGNED NOT NULL COMMENT '租户ID（运营方）',
+  `product_id` INT UNSIGNED NOT NULL COMMENT '商品ID',
+  `product_name` VARCHAR(200) NOT NULL COMMENT '商品名称（快照）',
+  `points_cost` INT NOT NULL COMMENT '消耗积分',
+  `quantity` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '兑换数量',
+  `total_points` INT NOT NULL COMMENT '总消耗积分',
+  `status` ENUM('pending', 'completed', 'cancelled') NOT NULL DEFAULT 'pending' COMMENT '订单状态：pending-待处理，completed-已完成，cancelled-已取消',
+  `recipient_name` VARCHAR(50) DEFAULT NULL COMMENT '收货人姓名',
+  `recipient_phone` VARCHAR(20) DEFAULT NULL COMMENT '收货人电话',
+  `recipient_address` TEXT DEFAULT NULL COMMENT '收货地址',
+  `remark` TEXT DEFAULT NULL COMMENT '备注',
+  `is_deleted` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-未删除，1-已删除',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE,
+  INDEX `idx_order_no` (`order_no`),
+  INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_tenant_id` (`tenant_id`),
+  INDEX `idx_status` (`status`),
+  INDEX `idx_is_deleted` (`is_deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
 
 -- ============================================
 -- 初始化数据
