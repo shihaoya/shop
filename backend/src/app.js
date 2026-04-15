@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const config = require('./config');
 const { sequelize, testConnection } = require('./models/database');
 const routes = require('./routes');
@@ -13,6 +14,9 @@ app.use(cors(config.cors));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(logMiddleware);
+
+// 静态文件服务（上传的图片）
+app.use('/uploads', express.static(path.resolve(config.upload.dir)));
 
 // 路由
 app.use('/api/v1', routes);

@@ -2,6 +2,7 @@ const { Product, Tenant, UserTenantRelation } = require('../models');
 const { Op } = require('sequelize');
 const { logger } = require('../middlewares/logger');
 const { success, error } = require('../utils/response');
+const config = require('../config');
 
 /**
  * 辅助函数：获取运营方的租户ID
@@ -24,7 +25,14 @@ async function getOperatorTenantId(userId) {
 exports.createProduct = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { name, description, imageUrl, pointsRequired, stock, category } = req.body;
+    const { name, description, pointsRequired, stock, category } = req.body;
+    
+    // 获取上传的图片文件
+    let imageUrl = null;
+    if (req.file) {
+      // 生成图片访问URL（相对于uploads目录）
+      imageUrl = `/uploads/${req.file.filename}`;
+    }
 
     // 验证必填字段
     if (!name || !pointsRequired || stock === undefined) {

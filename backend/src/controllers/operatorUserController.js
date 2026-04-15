@@ -356,3 +356,133 @@ exports.getTrashUsers = async (req, res) => {
   }
 };
 
+/**
+ * 获取待审核的申请列表
+ */
+exports.getPendingApplications = async (req, res) => {
+  try {
+    const operatorId = req.user.id;
+    const { page = 1, pageSize = 20 } = req.query;
+    const offset = (page - 1) * pageSize;
+
+    // 获取租户ID
+    const tenantId = await getOperatorTenantId(operatorId);
+
+    const { count, rows } = await UserTenantRelation.findAndCountAll({
+      where: {
+        tenantId,
+        status: 'pending',
+        isDeleted: 0
+      },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'username', 'nickname']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: offset
+    });
+
+    return success(res, {
+      list: rows,
+      total: count,
+      page: parseInt(page),
+      pageSize: parseInt(pageSize)
+    });
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
+    logger.error(`获取待审核申请失败: ${errorMsg}`);
+    return error(res, errorMsg || '获取失败', 500);
+  }
+};
+
+/**
+ * 审核通过
+ */
+exports.approveApplication = async (req, res) => {
+  try {
+    const operatorId = req.user.id;
+    const { relationId } = req.params;
+
+    // 获取租户ID
+    const tenantId = await getOperatorTenantId(operatorId);
+
+    // 查找申请记录
+    const relation = await UserTenantRelation.findOne({
+      where: {
+        id: relationId,
+        tenantId,
+        status: 'pending',
+        isDeleted: 0
+      }
+    });
+
+    if (!relation) {
+      return error(res, '申请记录不存在', 404);
+    }
+
+    // 更新状态
+    await relation.update({
+      status: 'approved',
+      pointsBalance: 0
+    });
+
+    logger.info(`运营方 ${operatorId} 审核通过用户 ${relation.userId} 的申请`);
+
+    return success(res, null, '审核通过');
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
+    logger.error(`审核通过失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 500);
+  }
+};
+
+/**
+ * 审核拒绝
+ */
+exports.rejectApplication = async (req, res) => {
+  try {
+    const operatorId = req.user.id;
+    const { relationId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return error(res, '请填写拒绝理由', 400);
+    }
+
+    // 获取租户ID
+    const tenantId = await getOperatorTenantId(operatorId);
+
+    // 查找申请记录
+    const relation = await UserTenantRelation.findOne({
+      where: {
+        id: relationId,
+        tenantId,
+        status: 'pending',
+        isDeleted: 0
+      }
+    });
+
+    if (!relation) {
+      return error(res, '申请记录不存在', 404);
+    }
+
+    // 更新状态和拒绝理由
+    await relation.update({
+      status: 'rejected',
+      rejectReason: reason
+    });
+
+    logger.info(`运营方 ${operatorId} 拒绝用户 ${relation.userId} 的申请`);
+
+    return success(res, null, '已拒绝');
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
+    logger.error(`审核拒绝失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 500);
+  }
+};
+

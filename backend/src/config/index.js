@@ -40,5 +40,9 @@ module.exports = {
   log: {
     level: process.env.LOG_LEVEL || 'debug',
     filePath: './logs'
+  },
+  
+  upload: {
+    dir: process.env.UPLOAD_DIR || './uploads'
   }
 };

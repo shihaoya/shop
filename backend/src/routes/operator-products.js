@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
 const { authMiddleware, requireRole } = require('../middlewares/auth');
+const upload = require('../middlewares/upload');
 
 // 所有商品接口都需要operator角色
 router.use(authMiddleware);
 router.use(requireRole('operator'));
 
 // 商品CRUD
-router.post('/', productController.createProduct);
+router.post('/', upload.single('image'), productController.createProduct);
 router.get('/', productController.getProducts);
 
 // 回收站（必须在 /:id 之前）

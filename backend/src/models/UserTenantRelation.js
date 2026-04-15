@@ -30,6 +30,16 @@ const UserTenantRelation = sequelize.define('UserTenantRelation', {
     defaultValue: 0,
     comment: '在该租户下的积分余额'
   },
+  applyReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: '申请理由'
+  },
+  rejectReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: '拒绝理由'
+  },
   isDeleted: {
     type: DataTypes.TINYINT,
     allowNull: false,

@@ -48,6 +48,7 @@ exports.applyJoinTenant = async (req, res) => {
   try {
     const userId = req.user.id;
     const { tenantId } = req.params;
+    const { reason } = req.body;
 
     // 验证租户是否存在且已审核通过
     const tenant = await Tenant.findByPk(tenantId);
@@ -75,7 +76,9 @@ exports.applyJoinTenant = async (req, res) => {
           status: 'pending',
           isDeleted: 0,
           deletedAt: null,
-          pointsBalance: 0
+          pointsBalance: 0,
+          applyReason: reason || null,
+          rejectReason: null
         });
         
         logger.info(`用户 ${userId} 重新申请加入租户 ${tenantId}`);
@@ -90,7 +93,8 @@ exports.applyJoinTenant = async (req, res) => {
       userId,
       tenantId,
       status: 'pending',
-      pointsBalance: 0
+      pointsBalance: 0,
+      applyReason: reason || null
     });
 
     logger.info(`用户 ${userId} 申请加入租户 ${tenantId}`);
