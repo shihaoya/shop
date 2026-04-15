@@ -36,6 +36,7 @@ const startServer = async () => {
     
     // 同步数据库模型（开发环境）
     if (config.nodeEnv === 'development') {
+      // 数据库已创建，使用 alter: false 避免冲突
       await sequelize.sync({ alter: false });
       console.log('数据库模型同步完成');
     }

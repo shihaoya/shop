@@ -13,8 +13,21 @@ const getPendingTenants = async (req, res) => {
     
     return success(res, result);
   } catch (err) {
-    logger.error('获取待审核列表失败:', err.message);
-    return error(res, err.message, 500);
+    // 处理 Sequelize 错误
+    const errorMsg = err.original 
+      ? err.original.message 
+      : (err.message || '未知错误');
+    
+    // 记录详细错误信息
+    logger.error(`获取待审核列表失败: ${errorMsg}`);
+    console.error('=== 完整错误堆栈 ===');
+    console.error(err);
+    if (err.original) {
+      console.error('Sequelize原始错误:', err.original);
+    }
+    console.error('==================');
+    
+    return error(res, errorMsg, 500);
   }
 };
 
@@ -30,8 +43,9 @@ const approveTenant = async (req, res) => {
     
     return success(res, null, '审核通过');
   } catch (err) {
-    logger.error('审核通过失败:', err.message);
-    return error(res, err.message, 400);
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`审核通过失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 400);
   }
 };
 
@@ -48,8 +62,9 @@ const rejectTenant = async (req, res) => {
     
     return success(res, null, '已拒绝');
   } catch (err) {
-    logger.error('拒绝审核失败:', err.message);
-    return error(res, err.message, 400);
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`拒绝审核失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 400);
   }
 };
 
@@ -64,8 +79,9 @@ const getUserList = async (req, res) => {
     
     return success(res, result);
   } catch (err) {
-    logger.error('获取用户列表失败:', err.message);
-    return error(res, err.message, 500);
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`获取用户列表失败: ${errorMsg}`);
+    return error(res, errorMsg || '服务器内部错误', 500);
   }
 };
 
@@ -81,8 +97,9 @@ const resetUserPassword = async (req, res) => {
     
     return success(res, result, '密码重置成功');
   } catch (err) {
-    logger.error('重置密码失败:', err.message);
-    return error(res, err.message, 400);
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`重置密码失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 400);
   }
 };
 
@@ -103,8 +120,9 @@ const updateUserStatus = async (req, res) => {
     
     return success(res, null, '状态更新成功');
   } catch (err) {
-    logger.error('更新用户状态失败:', err.message);
-    return error(res, err.message, 400);
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`更新用户状态失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 400);
   }
 };
 

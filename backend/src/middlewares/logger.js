@@ -17,7 +17,14 @@ const logger = winston.createLogger({
     }),
     winston.format.errors({ stack: true }),
     winston.format.splat(),
-    winston.format.json()
+    winston.format.printf(({ level, message, timestamp, service, ...meta }) => {
+      // 正确处理对象类型的message
+      let msg = message;
+      if (typeof message === 'object') {
+        msg = JSON.stringify(message);
+      }
+      return `${timestamp} [${level.toUpperCase()}] ${service ? `[${service}] ` : ''}${msg}`;
+    })
   ),
   defaultMeta: { service: 'point-exchange-api' },
   transports: [

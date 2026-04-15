@@ -40,39 +40,33 @@ const User = sequelize.define('User', {
     type: DataTypes.TINYINT,
     allowNull: false,
     defaultValue: 0,
-    field: 'is_deleted',
     comment: '逻辑删除：0-未删除，1-已删除'
   },
   deletedAt: {
     type: DataTypes.DATE,
     allowNull: true,
-    field: 'deleted_at',
     comment: '删除时间'
   },
   lastLoginAt: {
     type: DataTypes.DATE,
     allowNull: true,
-    field: 'last_login_at',
     comment: '最后登录时间'
   },
   loginFailCount: {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0,
-    field: 'login_fail_count',
     comment: '登录失败次数'
   },
   lockedUntil: {
     type: DataTypes.DATE,
     allowNull: true,
-    field: 'locked_until',
     comment: '锁定到期时间'
   }
 }, {
   tableName: 'users',
   timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
+  underscored: true,
   indexes: [
     { fields: ['username'] },
     { fields: ['role'] },
