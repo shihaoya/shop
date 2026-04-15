@@ -2,6 +2,8 @@ const User = require('./User');
 const Tenant = require('./Tenant');
 const UserTenantRelation = require('./UserTenantRelation');
 const OperationLog = require('./OperationLog');
+const Product = require('./Product');
+const PointTransaction = require('./PointTransaction');
 
 // 定义关联关系
 User.hasOne(Tenant, { foreignKey: 'userId', as: 'tenant' });
@@ -13,9 +15,22 @@ UserTenantRelation.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Tenant.hasMany(UserTenantRelation, { foreignKey: 'tenantId', as: 'userRelations' });
 UserTenantRelation.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 
+// 商品关联
+Tenant.hasMany(Product, { foreignKey: 'tenantId', as: 'products' });
+Product.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+
+// 积分流水关联
+User.hasMany(PointTransaction, { foreignKey: 'userId', as: 'pointTransactions' });
+PointTransaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+Tenant.hasMany(PointTransaction, { foreignKey: 'tenantId', as: 'pointTransactions' });
+PointTransaction.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+
 module.exports = {
   User,
   Tenant,
   UserTenantRelation,
-  OperationLog
+  OperationLog,
+  Product,
+  PointTransaction
 };
