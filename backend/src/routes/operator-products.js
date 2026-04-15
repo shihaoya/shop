@@ -10,13 +10,15 @@ router.use(requireRole('operator'));
 // 商品CRUD
 router.post('/', productController.createProduct);
 router.get('/', productController.getProducts);
+
+// 回收站（必须在 /:id 之前）
+router.get('/trash/list', productController.getTrashProducts);
+
+// 带参数的路由放在最后
 router.get('/:id', productController.getProductById);
 router.put('/:id', productController.updateProduct);
 router.put('/:id/status', productController.updateProductStatus);
 router.delete('/:id', productController.deleteProduct);
-
-// 回收站
-router.get('/trash/list', productController.getTrashProducts);
 router.post('/:id/restore', productController.restoreProduct);
 
 module.exports = router;

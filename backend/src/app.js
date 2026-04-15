@@ -41,11 +41,13 @@ const startServer = async () => {
       console.log('数据库模型同步完成');
     }
     
-    // 启动服务
-    app.listen(config.port, () => {
-      console.log(`服务器运行在 http://localhost:${config.port}`);
-      console.log(`环境: ${config.nodeEnv}`);
-    });
+    // 启动服务（测试环境下不监听端口）
+    if (config.nodeEnv !== 'test') {
+      app.listen(config.port, () => {
+        console.log(`服务器运行在 http://localhost:${config.port}`);
+        console.log(`环境: ${config.nodeEnv}`);
+      });
+    }
   } catch (error) {
     console.error('服务器启动失败:', error);
     process.exit(1);

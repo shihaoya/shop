@@ -7,13 +7,15 @@ const { authMiddleware, requireRole } = require('../middlewares/auth');
 router.use(authMiddleware);
 router.use(requireRole('operator'));
 
-// 用户管理
+// 用户管理（静态路由在前）
+router.get('/', operatorUserController.getUsers);
 router.post('/add-existing', operatorUserController.addExistingUser);
 router.post('/create-new', operatorUserController.createNewUser);
-router.get('/', operatorUserController.getUsers);
+router.get('/trash/list', operatorUserController.getTrashUsers);
+
+// 带参数的路由放在最后
 router.get('/:userId', operatorUserController.getUserDetail);
 router.delete('/:userId', operatorUserController.removeUser);
 router.post('/:userId/restore', operatorUserController.restoreUser);
-router.get('/trash/list', operatorUserController.getTrashUsers);
 
 module.exports = router;

@@ -1,3 +1,4 @@
+const { sequelize } = require('./database');
 const User = require('./User');
 const Tenant = require('./Tenant');
 const UserTenantRelation = require('./UserTenantRelation');
@@ -27,6 +28,7 @@ Tenant.hasMany(PointTransaction, { foreignKey: 'tenantId', as: 'pointTransaction
 PointTransaction.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 
 module.exports = {
+  sequelize,
   User,
   Tenant,
   UserTenantRelation,

@@ -177,7 +177,16 @@ exports.addPoints = async (req, res) => {
     await transaction.rollback();
     const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
     logger.error(`增加积分失败: ${errorMsg}`);
-    return error(res, errorMsg || '操作失败', 500);
+    
+    // 根据错误类型返回不同的状态码
+    let statusCode = 500;
+    if (errorMsg.includes('不属于此租户') || errorMsg.includes('不存在')) {
+      statusCode = 404;
+    } else if (errorMsg.includes('必填') || errorMsg.includes('必须')) {
+      statusCode = 400;
+    }
+    
+    return error(res, errorMsg || '操作失败', statusCode);
   }
 };
 
@@ -245,7 +254,15 @@ exports.subtractPoints = async (req, res) => {
     await transaction.rollback();
     const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
     logger.error(`减少积分失败: ${errorMsg}`);
-    return error(res, errorMsg || '操作失败', 500);
+    
+    let statusCode = 500;
+    if (errorMsg.includes('不属于此租户') || errorMsg.includes('不存在')) {
+      statusCode = 404;
+    } else if (errorMsg.includes('必填') || errorMsg.includes('必须') || errorMsg.includes('不足')) {
+      statusCode = 400;
+    }
+    
+    return error(res, errorMsg || '操作失败', statusCode);
   }
 };
 
@@ -320,7 +337,15 @@ exports.modifyPoints = async (req, res) => {
     await transaction.rollback();
     const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
     logger.error(`修改积分失败: ${errorMsg}`);
-    return error(res, errorMsg || '操作失败', 500);
+    
+    let statusCode = 500;
+    if (errorMsg.includes('不属于此租户') || errorMsg.includes('不存在')) {
+      statusCode = 404;
+    } else if (errorMsg.includes('必填') || errorMsg.includes('必须')) {
+      statusCode = 400;
+    }
+    
+    return error(res, errorMsg || '操作失败', statusCode);
   }
 };
 
@@ -461,18 +486,18 @@ exports.getPointTransactions = async (req, res) => {
     }
 
     if (startDate || endDate) {
-      where.createdAt = {};
+      where.created_at = {};
       if (startDate) {
-        where.createdAt[Op.gte] = new Date(startDate);
+        where.created_at[Op.gte] = new Date(startDate);
       }
       if (endDate) {
-        where.createdAt[Op.lte] = new Date(endDate);
+        where.created_at[Op.lte] = new Date(endDate);
       }
     }
 
     const { count, rows } = await PointTransaction.findAndCountAll({
       where,
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit: parseInt(pageSize),
       offset: offset
     });
