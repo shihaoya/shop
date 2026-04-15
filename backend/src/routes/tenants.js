@@ -18,4 +18,7 @@ router.get('/', tenantController.getTenants);
 // 获取租户详情（所有登录用户）
 router.get('/:id', tenantController.getTenantById);
 
+// 获取租户商品列表（用户端）
+router.get('/:id/products', tenantController.getTenantProducts);
+
 module.exports = router;

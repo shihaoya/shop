@@ -13,8 +13,8 @@
             <div class="operator-info">
               <span>运营方：{{ tenant.user?.nickname || tenant.user?.username }}</span>
             </div>
-            <el-button type="primary" style="width: 100%; margin-top: 15px" @click="handleApply(tenant)">
-              申请加入
+            <el-button type="primary" style="width: 100%; margin-top: 15px" @click="handleViewProducts(tenant)">
+              查看商品
             </el-button>
           </el-card>
         </el-col>
@@ -37,8 +37,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getUserTenants, applyJoinTenant } from '@/api'
+import { getUserTenants } from '@/api'
+
+const router = useRouter()
 
 const tenantList = ref([])
 const pagination = reactive({
@@ -63,13 +66,8 @@ const fetchData = async () => {
   }
 }
 
-const handleApply = async (tenant) => {
-  try {
-    await applyJoinTenant(tenant.id)
-    ElMessage.success('申请已提交，请等待审核')
-  } catch (error) {
-    ElMessage.error(error.response?.data?.message || '申请失败')
-  }
+const handleViewProducts = (tenant) => {
+  router.push(`/user/products/${tenant.id}`)
 }
 
 const handlePageChange = (page) => {

@@ -25,6 +25,15 @@ export function getProducts(params) {
   })
 }
 
+// 用户端获取商品列表（根据租户ID）
+export function getTenantProducts(tenantId, params) {
+  return request({
+    url: `/tenants/${tenantId}/products`,
+    method: 'get',
+    params
+  })
+}
+
 export function getProductById(id) {
   return request({
     url: `/operator/products/${id}`,

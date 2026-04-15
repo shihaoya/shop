@@ -116,6 +116,12 @@ const routes = [
         meta: { title: '运营方列表' }
       },
       {
+        path: 'products/:tenantId',
+        name: 'UserProducts',
+        component: () => import('@/views/User/Products.vue'),
+        meta: { title: '商品列表' }
+      },
+      {
         path: 'applications',
         name: 'MyApplications',
         component: () => import('@/views/User/Applications.vue'),

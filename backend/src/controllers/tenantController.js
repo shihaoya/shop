@@ -1,4 +1,4 @@
-const { Tenant, UserTenantRelation } = require('../models');
+const { Tenant, UserTenantRelation, Product } = require('../models');
 const { Op } = require('sequelize');
 const { logger } = require('../middlewares/logger');
 const { success, error } = require('../utils/response');
@@ -189,6 +189,64 @@ exports.getTenantById = async (req, res) => {
   } catch (err) {
     const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
     logger.error(`获取租户详情失败: ${errorMsg}`);
+    return res.status(500).json({
+      code: 500,
+      message: errorMsg || '服务器内部错误'
+    });
+  }
+};
+
+/**
+ * 获取指定租户的商品列表（用户端）
+ */
+exports.getTenantProducts = async (req, res) => {
+  try {
+    const { id: tenantId } = req.params;
+    const { page = 1, pageSize = 20 } = req.query;
+    const userId = req.user.id;
+    const offset = (page - 1) * pageSize;
+
+    // 检查用户是否已加入该租户
+    const relation = await UserTenantRelation.findOne({
+      where: {
+        userId,
+        tenantId,
+        status: 'approved'
+      }
+    });
+
+    if (!relation) {
+      return res.status(403).json({
+        code: 403,
+        message: '您还不是该运营方的成员'
+      });
+    }
+
+    // 查询该租户的上架商品
+    const { count, rows } = await Product.findAndCountAll({
+      where: {
+        tenantId,
+        status: 'active',
+        isDeleted: 0
+      },
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: offset
+    });
+
+    return res.json({
+      code: 200,
+      message: 'success',
+      data: {
+        list: rows,
+        total: count,
+        page: parseInt(page),
+        pageSize: parseInt(pageSize)
+      }
+    });
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
+    logger.error(`获取租户商品失败: ${errorMsg}`);
     return res.status(500).json({
       code: 500,
       message: errorMsg || '服务器内部错误'
