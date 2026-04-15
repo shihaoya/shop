@@ -1,5 +1,5 @@
 const { Tenant, UserTenantRelation, PointTransaction } = require('../models');
-const logger = require('../middlewares/logger');
+const { logger } = require('../middlewares/logger');
 const { success, error } = require('../utils/response');
 
 /**

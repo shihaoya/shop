@@ -1,6 +1,6 @@
 const { User, Tenant, UserTenantRelation, PointTransaction } = require('../models');
 const { Op } = require('sequelize');
-const logger = require('../middlewares/logger');
+const { logger } = require('../middlewares/logger');
 const { success, error } = require('../utils/response');
 
 /**

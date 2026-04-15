@@ -1,6 +1,6 @@
 const { Tenant, UserTenantRelation } = require('../models');
 const { Op } = require('sequelize');
-const logger = require('../middlewares/logger');
+const { logger } = require('../middlewares/logger');
 
 /**
  * 获取租户列表（根据角色返回不同数据）

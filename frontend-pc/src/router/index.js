@@ -16,7 +16,15 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/admin/dashboard'
+    redirect: (to) => {
+      const userStore = useUserStore()
+      if (!userStore.isLoggedIn) {
+        return '/login'
+      }
+      
+      // 根据角色重定向到对应的首页
+      return getDefaultHomePage(userStore.userRole)
+    }
   },
   // 管理员路由
   {
@@ -98,6 +106,18 @@ const routes = [
   }
 ]
 
+// 根据角色自动获取第一个可用路由
+const getDefaultHomePage = (role) => {
+  // 遍历所有路由，找到匹配角色的第一个子路由
+  for (const route of routes) {
+    if (route.children && route.meta?.role === role) {
+      // 返回该角色的第一个子路由
+      return route.path + '/' + route.children[0].path
+    }
+  }
+  return '/login'
+}
+
 const router = createRouter({
   history: createWebHistory(),
   routes
@@ -118,7 +138,8 @@ router.beforeEach((to, from) => {
     
     // 检查角色权限
     if (to.meta.role && userStore.userRole !== to.meta.role) {
-      return '/'
+      // 根据角色重定向到对应的首页，避免循环
+      return getDefaultHomePage(userStore.userRole)
     }
   }
   

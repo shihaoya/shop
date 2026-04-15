@@ -1,7 +1,7 @@
 const { User, Tenant, UserTenantRelation } = require('../models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
-const logger = require('../middlewares/logger');
+const { logger } = require('../middlewares/logger');
 const { success, error } = require('../utils/response');
 
 /**

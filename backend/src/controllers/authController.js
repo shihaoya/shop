@@ -28,7 +28,7 @@ const register = async (req, res) => {
     
     return success(res, result, '注册成功');
   } catch (err) {
-    logger.error('注册失败:', err.message);
+    logger.error(`注册失败: ${err.message}`);
     return error(res, err.message, 400);
   }
 };
@@ -49,7 +49,7 @@ const login = async (req, res) => {
     
     return success(res, result, '登录成功');
   } catch (err) {
-    logger.error('登录失败:', err.message);
+    logger.error(`登录失败: ${err.message}`);
     return error(res, err.message, 401);
   }
 };
@@ -69,7 +69,7 @@ const refreshToken = async (req, res) => {
     
     return success(res, result, 'Token刷新成功');
   } catch (err) {
-    logger.error('Token刷新失败:', err.message);
+    logger.error(`Token刷新失败: ${err.message}`);
     return error(res, err.message, 401);
   }
 };
