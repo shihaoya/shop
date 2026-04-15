@@ -227,3 +227,28 @@ export function getUserPointTransactions(params) {
     params
   })
 }
+
+// 租户审核状态（运营方专用）
+export function getMyTenantStatus() {
+  return request({
+    url: '/tenants/my-status',
+    method: 'get'
+  })
+}
+
+export function resubmitAudit(data) {
+  return request({
+    url: '/tenants/resubmit',
+    method: 'put',
+    data
+  })
+}
+
+// 修改密码
+export function changePassword(data) {
+  return request({
+    url: '/auth/change-password',
+    method: 'post',
+    data
+  })
+}

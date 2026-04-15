@@ -44,6 +44,17 @@
           />
         </el-form-item>
 
+        <el-form-item v-if="registerForm.role === 'operator'" prop="description">
+          <el-input
+            v-model="registerForm.description"
+            type="textarea"
+            :rows="4"
+            placeholder="请简要描述您的运营计划或说明（必填）"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+
         <el-form-item prop="password">
           <el-input
             v-model="registerForm.password"
@@ -63,15 +74,6 @@
             size="large"
             prefix-icon="Lock"
             show-password
-          />
-        </el-form-item>
-
-        <el-form-item v-if="registerForm.role === 'operator'" prop="description">
-          <el-input
-            v-model="registerForm.description"
-            type="textarea"
-            :rows="3"
-            placeholder="请简单描述您的运营说明"
           />
         </el-form-item>
 
@@ -142,7 +144,16 @@ const rules = {
     { validator: validatePass, trigger: 'blur' }
   ],
   description: [
-    { required: true, message: '请填写运营说明', trigger: 'blur' }
+    { 
+      validator: (rule, value, callback) => {
+        if (registerForm.role === 'operator' && !value) {
+          callback(new Error('运营方必须填写运营说明'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
   ]
 }
 

@@ -117,17 +117,11 @@ const handleLogin = async () => {
         
         ElMessage.success('登录成功')
         
-        // 根据角色跳转
-        const role = userStore.userRole
-        if (role === 'admin') {
-          router.push('/admin/dashboard')
-        } else if (role === 'operator') {
-          router.push('/operator/dashboard')
-        } else {
-          router.push('/user/home')
-        }
+        // 登录成功后跳转到根路径，由路由守卫自动重定向到对应角色的首页
+        router.push('/')
       } catch (error) {
         console.error('登录失败:', error)
+        ElMessage.error(error.message || '登录失败')
       } finally {
         loading.value = false
       }

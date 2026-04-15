@@ -30,10 +30,20 @@
             <el-icon><Avatar /></el-icon>
             <template #title>用户管理</template>
           </el-menu-item>
+          
+          <el-menu-item index="/admin/products">
+            <el-icon><ShoppingBag /></el-icon>
+            <template #title>上架商品管理</template>
+          </el-menu-item>
         </template>
 
         <!-- 运营方菜单 -->
         <template v-else-if="userStore.userRole === 'operator'">
+          <el-menu-item index="/operator/profile">
+            <el-icon><Avatar /></el-icon>
+            <template #title>个人中心</template>
+          </el-menu-item>
+          
           <el-menu-item index="/operator/products">
             <el-icon><ShoppingBag /></el-icon>
             <template #title>商品管理</template>
@@ -88,13 +98,17 @@
           <el-dropdown @command="handleCommand">
             <div class="user-info">
               <el-avatar :size="36" class="user-avatar">
-                {{ userStore.userInfo?.username?.charAt(0)?.toUpperCase() }}
+                {{ displayNickname.charAt(0).toUpperCase() }}
               </el-avatar>
-              <span class="username">{{ userStore.userInfo?.username }}</span>
+              <span class="username">{{ displayName }}</span>
               <el-icon><ArrowDown /></el-icon>
             </div>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item command="changePassword">
+                  <el-icon><Lock /></el-icon>
+                  修改密码
+                </el-dropdown-item>
                 <el-dropdown-item command="logout">
                   <el-icon><SwitchButton /></el-icon>
                   退出登录
@@ -114,6 +128,9 @@
         </router-view>
       </el-main>
     </el-container>
+    
+    <!-- 修改密码对话框 -->
+    <ChangePassword v-model="showChangePassword" @success="handlePasswordSuccess" />
   </el-container>
 </template>
 
@@ -121,7 +138,8 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, ElMessage } from 'element-plus'
+import ChangePassword from '@/components/Common/ChangePassword.vue'
 import {
   ShoppingBag,
   HomeFilled,
@@ -130,7 +148,9 @@ import {
   Fold,
   Expand,
   ArrowDown,
-  SwitchButton
+  SwitchButton,
+  Lock,
+  DocumentChecked
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -138,8 +158,30 @@ const route = useRoute()
 const userStore = useUserStore()
 
 const isCollapse = ref(false)
+const showChangePassword = ref(false)
 
 const activeMenu = computed(() => route.path)
+
+// 显示名称：昵称(用户名)
+const displayName = computed(() => {
+  const userInfo = userStore.userInfo
+  if (!userInfo) return ''
+  
+  const nickname = userInfo.nickname
+  const username = userInfo.username
+  
+  if (nickname && nickname !== username) {
+    return `${nickname}(${username})`
+  }
+  return username
+})
+
+// 显示昵称（用于头像）
+const displayNickname = computed(() => {
+  const userInfo = userStore.userInfo
+  if (!userInfo) return '?'
+  return userInfo.nickname || userInfo.username || '?'
+})
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
@@ -159,7 +201,17 @@ const handleCommand = async (command) => {
     } catch {
       // 取消操作
     }
+  } else if (command === 'changePassword') {
+    showChangePassword.value = true
   }
+}
+
+const handlePasswordSuccess = () => {
+  ElMessage.success('密码修改成功，3秒后自动退出登录')
+  setTimeout(async () => {
+    await userStore.logout()
+    router.push('/login')
+  }, 3000)
 }
 </script>
 

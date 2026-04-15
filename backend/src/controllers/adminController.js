@@ -126,11 +126,106 @@ const updateUserStatus = async (req, res) => {
   }
 };
 
+/**
+ * 获取用户详情
+ */
+const getUserDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await adminService.getUserDetail(id);
+    
+    return success(res, user);
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`获取用户详情失败: ${errorMsg}`);
+    return error(res, errorMsg || '服务器内部错误', 500);
+  }
+};
+
+/**
+ * 更新用户信息
+ */
+const updateUserInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userData = req.body;
+    const adminUserId = req.user.id;
+    
+    const user = await adminService.updateUserInfo(id, userData, adminUserId);
+    
+    return success(res, user, '用户信息更新成功');
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`更新用户信息失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 400);
+  }
+};
+
+/**
+ * 更新租户审核状态
+ */
+const updateTenantStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const statusData = req.body;
+    const adminUserId = req.user.id;
+    
+    const tenant = await adminService.updateTenantStatus(id, statusData, adminUserId);
+    
+    return success(res, tenant, '审核状态更新成功');
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`更新租户审核状态失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 400);
+  }
+};
+
+/**
+ * 获取所有上架商品列表
+ */
+const getOnShelfProducts = async (req, res) => {
+  try {
+    const { page = 1, pageSize = 20, keyword } = req.query;
+    
+    const result = await adminService.getOnShelfProducts(page, pageSize, keyword);
+    
+    return success(res, result);
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`获取上架商品列表失败: ${errorMsg}`);
+    return error(res, errorMsg || '服务器内部错误', 500);
+  }
+};
+
+/**
+ * 获取租户审核历史
+ */
+const getTenantAuditHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, pageSize = 20 } = req.query;
+    
+    const result = await adminService.getTenantAuditHistory(id, page, pageSize);
+    
+    return success(res, result);
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`获取租户审核历史失败: ${errorMsg}`);
+    return error(res, errorMsg || '服务器内部错误', 500);
+  }
+};
+
 module.exports = {
   getPendingTenants,
   approveTenant,
   rejectTenant,
   getUserList,
   resetUserPassword,
-  updateUserStatus
+  updateUserStatus,
+  getUserDetail,
+  updateUserInfo,
+  updateTenantStatus,
+  getOnShelfProducts,
+  getTenantAuditHistory
 };

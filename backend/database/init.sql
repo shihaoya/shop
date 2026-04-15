@@ -1,3 +1,7 @@
+-- ============================================
+-- 积分兑换系统 - 数据库初始化脚本
+-- ============================================
+
 -- 创建数据库
 CREATE DATABASE IF NOT EXISTS point_exchange_system 
 DEFAULT CHARACTER SET utf8mb4 
@@ -5,7 +9,9 @@ DEFAULT COLLATE utf8mb4_unicode_ci;
 
 USE point_exchange_system;
 
--- 用户表
+-- ============================================
+-- 1. 用户表
+-- ============================================
 CREATE TABLE IF NOT EXISTS `users` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',
   `username` VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
@@ -25,7 +31,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   INDEX `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
--- 租户表
+-- ============================================
+-- 2. 租户表
+-- ============================================
 CREATE TABLE IF NOT EXISTS `tenants` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '租户ID',
   `user_id` INT UNSIGNED NOT NULL COMMENT '关联的用户ID（运营方）',
@@ -42,7 +50,9 @@ CREATE TABLE IF NOT EXISTS `tenants` (
   INDEX `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户表';
 
--- 用户-租户关联表
+-- ============================================
+-- 3. 用户-租户关联表
+-- ============================================
 CREATE TABLE IF NOT EXISTS `user_tenant_relations` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '关联ID',
   `user_id` INT UNSIGNED NOT NULL COMMENT '用户ID',
@@ -60,7 +70,55 @@ CREATE TABLE IF NOT EXISTS `user_tenant_relations` (
   INDEX `idx_tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户-租户关联表';
 
--- 操作日志表
+-- ============================================
+-- 4. 商品表
+-- ============================================
+CREATE TABLE IF NOT EXISTS `products` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '商品ID',
+  `tenant_id` INT UNSIGNED NOT NULL COMMENT '所属租户ID',
+  `name` VARCHAR(100) NOT NULL COMMENT '商品名称',
+  `description` TEXT DEFAULT NULL COMMENT '商品描述',
+  `image_url` VARCHAR(255) DEFAULT NULL COMMENT '商品图片URL',
+  `points_required` INT NOT NULL DEFAULT 0 COMMENT '所需积分',
+  `stock` INT NOT NULL DEFAULT 0 COMMENT '库存数量',
+  `category` VARCHAR(50) DEFAULT NULL COMMENT '商品分类',
+  `status` ENUM('on_shelf', 'off_shelf') NOT NULL DEFAULT 'off_shelf' COMMENT '状态：on_shelf-上架，off_shelf-下架',
+  `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序权重',
+  `is_deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+  `deleted_at` DATETIME DEFAULT NULL COMMENT '删除时间',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE CASCADE,
+  INDEX `idx_tenant_id` (`tenant_id`),
+  INDEX `idx_status` (`status`),
+  INDEX `idx_category` (`category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
+
+-- ============================================
+-- 5. 积分流水表
+-- ============================================
+CREATE TABLE IF NOT EXISTS `point_transactions` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '流水ID',
+  `user_id` INT UNSIGNED NOT NULL COMMENT '用户ID',
+  `tenant_id` INT UNSIGNED NOT NULL COMMENT '租户ID',
+  `transaction_type` ENUM('add', 'subtract', 'modify', 'exchange') NOT NULL COMMENT '交易类型：add-增加，subtract-减少，modify-修改，exchange-兑换',
+  `points_change` INT NOT NULL COMMENT '积分变动数量（正数表示增加，负数表示减少）',
+  `balance_after` INT NOT NULL COMMENT '变动后余额',
+  `reason` VARCHAR(255) NOT NULL COMMENT '变动原因',
+  `operator_id` INT UNSIGNED DEFAULT NULL COMMENT '操作人ID（运营方或系统）',
+  `operator_name` VARCHAR(50) DEFAULT NULL COMMENT '操作人姓名',
+  `related_order_id` INT UNSIGNED DEFAULT NULL COMMENT '关联订单ID（兑换时）',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE CASCADE,
+  INDEX `idx_user_tenant` (`user_id`, `tenant_id`),
+  INDEX `idx_created_at` (`created_at`),
+  INDEX `idx_transaction_type` (`transaction_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='积分流水表';
+
+-- ============================================
+-- 6. 操作日志表
+-- ============================================
 CREATE TABLE IF NOT EXISTS `operation_logs` (
   `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '日志ID',
   `user_id` INT UNSIGNED DEFAULT NULL COMMENT '操作用户ID',
@@ -79,6 +137,33 @@ CREATE TABLE IF NOT EXISTS `operation_logs` (
   INDEX `idx_operation_type` (`operation_type`),
   INDEX `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='操作日志表';
+
+-- ============================================
+-- 7. 租户审核历史表
+-- ============================================
+CREATE TABLE IF NOT EXISTS `tenant_audit_history` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '审核历史ID',
+  `tenant_id` INT UNSIGNED NOT NULL COMMENT '租户ID',
+  `previous_status` ENUM('pending', 'approved', 'rejected', 'disabled') DEFAULT NULL COMMENT '审核前状态',
+  `new_status` ENUM('pending', 'approved', 'rejected', 'disabled') NOT NULL COMMENT '审核后状态',
+  `audit_result` ENUM('approved', 'rejected') NOT NULL COMMENT '审核结果：approved-通过，rejected-拒绝',
+  `reject_reason` TEXT DEFAULT NULL COMMENT '拒绝原因（如果拒绝）',
+  `auditor_id` INT UNSIGNED NOT NULL COMMENT '审核人ID（管理员）',
+  `auditor_username` VARCHAR(50) DEFAULT NULL COMMENT '审核人用户名',
+  `remark` TEXT DEFAULT NULL COMMENT '审核备注',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '审核时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`auditor_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  INDEX `idx_tenant_id` (`tenant_id`),
+  INDEX `idx_auditor_id` (`auditor_id`),
+  INDEX `idx_audit_result` (`audit_result`),
+  INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='租户审核历史表';
+
+-- ============================================
+-- 初始化数据
+-- ============================================
 
 -- 插入默认管理员账号（密码: Admin@123456）
 -- 注意：实际使用时需要用bcrypt加密后的密码替换下面的哈希值

@@ -8,7 +8,10 @@
     "dev": "nodemon src/app.js",
     "test": "cross-env NODE_ENV=test jest",
     "test:watch": "cross-env NODE_ENV=test jest --watch",
-    "test:coverage": "cross-env NODE_ENV=test jest --coverage"
+    "test:coverage": "cross-env NODE_ENV=test jest --coverage",
+    "init:admin": "node scripts/init-admin.js",
+    "db:test:create": "node scripts/create-test-db.js",
+    "db:sync": "node scripts/sync-database.js"
   },
   "keywords": [
     "point",

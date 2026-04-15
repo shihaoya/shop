@@ -19,3 +19,13 @@ export const refreshToken = () => {
 export const logout = () => {
   return request.post('/auth/logout')
 }
+
+// 修改密码
+export const changePassword = (data) => {
+  return request.post('/auth/change-password', data)
+}
+
+// 更新用户信息
+export const updateUserInfo = (data) => {
+  return request.put('/auth/profile', data)
+}

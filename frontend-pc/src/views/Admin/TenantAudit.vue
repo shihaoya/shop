@@ -7,22 +7,45 @@
         </div>
       </template>
       
+      <!-- 状态筛选 -->
+      <div class="filter-bar">
+        <el-select v-model="statusFilter" placeholder="审核状态" clearable @change="handleFilterChange" style="width: 150px">
+          <el-option label="全部" value="" />
+          <el-option label="待审核" value="pending" />
+          <el-option label="已通过" value="approved" />
+          <el-option label="已拒绝" value="rejected" />
+          <el-option label="已禁用" value="disabled" />
+        </el-select>
+      </div>
+      
       <el-table :data="tenantList" v-loading="loading" style="width: 100%">
         <el-table-column prop="user.username" label="申请人" width="150" />
         <el-table-column prop="name" label="租户名称" width="200" />
         <el-table-column prop="description" label="申请说明" show-overflow-tooltip />
+        <el-table-column label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="getStatusTagType(row.status)">
+              {{ getStatusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="createdAt" label="申请时间" width="180">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
-            <el-button type="success" size="small" @click="handleApprove(row.id)">
-              通过
-            </el-button>
-            <el-button type="danger" size="small" @click="handleReject(row.id)">
-              拒绝
+            <template v-if="row.status === 'pending'">
+              <el-button type="success" size="small" @click="handleApprove(row.id)">
+                通过
+              </el-button>
+              <el-button type="danger" size="small" @click="handleReject(row.id)">
+                拒绝
+              </el-button>
+            </template>
+            <el-button type="primary" size="small" @click="handleViewHistory(row)">
+              审核历史
             </el-button>
           </template>
         </el-table-column>
@@ -40,13 +63,65 @@
         />
       </div>
     </el-card>
+
+    <!-- 审核历史对话框 -->
+    <el-dialog v-model="showHistoryDialog" title="审核历史记录" width="900px">
+      <el-table :data="historyList" v-loading="historyLoading" style="width: 100%">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column label="审核结果" width="120">
+          <template #default="{ row }">
+            <el-tag :type="row.auditResult === 'approved' ? 'success' : 'danger'">
+              {{ row.auditResult === 'approved' ? '通过' : '拒绝' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态变更" width="180">
+          <template #default="{ row }">
+            <span>{{ getStatusText(row.previousStatus) }}</span>
+            <el-icon style="margin: 0 5px"><Right /></el-icon>
+            <span>{{ getStatusText(row.newStatus) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="拒绝原因" min-width="200">
+          <template #default="{ row }">
+            {{ row.rejectReason || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="审核人" width="150">
+          <template #default="{ row }">
+            {{ row.auditor?.nickname || row.auditor?.username || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="审核时间" width="180">
+          <template #default="{ row }">
+            {{ formatDate(row.createdAt) }}
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <div class="pagination" v-if="historyTotal > 0">
+        <el-pagination
+          v-model:current-page="historyPage"
+          v-model:page-size="historyPageSize"
+          :total="historyTotal"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          @size-change="loadHistory"
+          @current-change="loadHistory"
+        />
+      </div>
+      <template #footer>
+        <el-button @click="showHistoryDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getPendingTenants, approveTenant, rejectTenant } from '@/api/admin'
+import { getTenants, approveTenant, rejectTenant, getTenantAuditHistory } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Right } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -54,6 +129,16 @@ const tenantList = ref([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+const statusFilter = ref('')
+
+// 审核历史相关
+const showHistoryDialog = ref(false)
+const historyLoading = ref(false)
+const historyList = ref([])
+const historyPage = ref(1)
+const historyPageSize = ref(20)
+const historyTotal = ref(0)
+const currentTenantId = ref(null)
 
 const formatDate = (date) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
@@ -62,10 +147,17 @@ const formatDate = (date) => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getPendingTenants({
+    const params = {
       page: currentPage.value,
       pageSize: pageSize.value
-    })
+    }
+    
+    // 如果有状态筛选，添加到参数中
+    if (statusFilter.value) {
+      params.status = statusFilter.value
+    }
+    
+    const res = await getTenants(params)
     tenantList.value = res.data.list
     total.value = res.data.total
   } catch (error) {
@@ -73,6 +165,11 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleFilterChange = () => {
+  currentPage.value = 1
+  loadData()
 }
 
 const handleApprove = async (id) => {
@@ -112,6 +209,52 @@ const handleReject = async (id) => {
   }
 }
 
+const getStatusText = (status) => {
+  const statusMap = {
+    pending: '待审核',
+    approved: '已通过',
+    rejected: '已拒绝',
+    disabled: '已禁用'
+  }
+  return statusMap[status] || status
+}
+
+const getStatusTagType = (status) => {
+  const typeMap = {
+    pending: 'warning',
+    approved: 'success',
+    rejected: 'danger',
+    disabled: 'info'
+  }
+  return typeMap[status] || 'info'
+}
+
+const handleViewHistory = async (tenant) => {
+  currentTenantId.value = tenant.id
+  historyPage.value = 1
+  showHistoryDialog.value = true
+  await loadHistory()
+}
+
+const loadHistory = async () => {
+  if (!currentTenantId.value) return
+  
+  historyLoading.value = true
+  try {
+    const res = await getTenantAuditHistory(currentTenantId.value, {
+      page: historyPage.value,
+      pageSize: historyPageSize.value
+    })
+    historyList.value = res.data.list
+    historyTotal.value = res.data.total
+  } catch (error) {
+    console.error('加载审核历史失败:', error)
+    ElMessage.error('加载审核历史失败')
+  } finally {
+    historyLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadData()
 })
@@ -125,6 +268,10 @@ onMounted(() => {
 .card-header {
   font-weight: 600;
   font-size: 16px;
+}
+
+.filter-bar {
+  margin-bottom: 20px;
 }
 
 .pagination {

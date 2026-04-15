@@ -1,4 +1,4 @@
-const { User, Tenant, OperationLog } = require('../models');
+const { User, Tenant, OperationLog, Product, TenantAuditHistory } = require('../models');
 const { hashPassword, generateRandomPassword } = require('../utils/encrypt');
 const { logger } = require('../middlewares/logger');
 const { Op } = require('sequelize');
@@ -46,6 +46,9 @@ const approveTenant = async (tenantId, adminUserId) => {
     throw new Error('该申请已处理');
   }
   
+  // 获取管理员信息
+  const admin = await User.findByPk(adminUserId);
+  
   // 更新租户状态
   await tenant.update({ status: 'approved' });
   
@@ -54,6 +57,16 @@ const approveTenant = async (tenantId, adminUserId) => {
     { status: 1 },
     { where: { id: tenant.userId } }
   );
+  
+  // 记录审核历史
+  await TenantAuditHistory.create({
+    tenantId,
+    previousStatus: 'pending',
+    newStatus: 'approved',
+    auditResult: 'approved',
+    auditorId: adminUserId,
+    auditorUsername: admin ? admin.username : null
+  });
   
   // 记录操作日志
   await OperationLog.create({
@@ -86,10 +99,24 @@ const rejectTenant = async (tenantId, reason, adminUserId) => {
     throw new Error('请填写拒绝原因');
   }
   
+  // 获取管理员信息
+  const admin = await User.findByPk(adminUserId);
+  
   // 更新租户状态
   await tenant.update({
     status: 'rejected',
     rejectReason: reason
+  });
+  
+  // 记录审核历史
+  await TenantAuditHistory.create({
+    tenantId,
+    previousStatus: 'pending',
+    newStatus: 'rejected',
+    auditResult: 'rejected',
+    rejectReason: reason,
+    auditorId: adminUserId,
+    auditorUsername: admin ? admin.username : null
   });
   
   // 记录操作日志
@@ -208,12 +235,213 @@ const updateUserStatus = async (userId, status, adminUserId) => {
   return user;
 };
 
+/**
+ * 获取用户详情（包含租户信息）
+ */
+const getUserDetail = async (userId) => {
+  const user = await User.findByPk(userId, {
+    attributes: ['id', 'username', 'nickname', 'role', 'status', 'lastLoginAt', 'createdAt']
+  });
+  
+  if (!user) {
+    throw new Error('用户不存在');
+  }
+  
+  // 如果是运营方，获取租户信息
+  let tenantInfo = null;
+  if (user.role === 'operator') {
+    tenantInfo = await Tenant.findOne({
+      where: { userId, isDeleted: 0 },
+      attributes: ['id', 'name', 'description', 'status', 'rejectReason', 'createdAt', 'updatedAt']
+    });
+  }
+  
+  return {
+    ...user.toJSON(),
+    tenantInfo
+  };
+};
+
+/**
+ * 更新用户信息
+ */
+const updateUserInfo = async (userId, userData, adminUserId) => {
+  const user = await User.findByPk(userId);
+  
+  if (!user) {
+    throw new Error('用户不存在');
+  }
+  
+  const allowedFields = ['nickname', 'role', 'status'];
+  const updateData = {};
+  
+  allowedFields.forEach(field => {
+    if (userData[field] !== undefined) {
+      updateData[field] = userData[field];
+    }
+  });
+  
+  // 如果修改了角色或状态，需要验证
+  if (updateData.role && !['admin', 'operator', 'user'].includes(updateData.role)) {
+    throw new Error('无效的角色值');
+  }
+  
+  if (updateData.status !== undefined && ![0, 1].includes(Number(updateData.status))) {
+    throw new Error('无效的状态值');
+  }
+  
+  await user.update(updateData);
+  
+  // 记录操作日志
+  await OperationLog.create({
+    userId: adminUserId,
+    operationType: 'update_user',
+    operationModule: 'user',
+    operationDesc: `更新用户信息，用户ID: ${userId}, 用户名: ${user.username}`
+  });
+  
+  logger.info(`管理员更新用户信息，用户ID: ${userId}`);
+  
+  return user;
+};
+
+/**
+ * 更新租户审核状态
+ */
+const updateTenantStatus = async (tenantId, statusData, adminUserId) => {
+  const tenant = await Tenant.findByPk(tenantId);
+  
+  if (!tenant) {
+    throw new Error('租户不存在');
+  }
+  
+  const { status, rejectReason } = statusData;
+  
+  if (status && !['pending', 'approved', 'rejected'].includes(status)) {
+    throw new Error('无效的审核状态');
+  }
+  
+  const previousStatus = tenant.status;
+  const updateData = {};
+  if (status) {
+    updateData.status = status;
+  }
+  if (rejectReason !== undefined) {
+    updateData.rejectReason = rejectReason || null;
+  }
+  
+  await tenant.update(updateData);
+  
+  // 如果状态发生变化，记录审核历史
+  if (status && status !== previousStatus) {
+    // 获取管理员信息
+    const admin = await User.findByPk(adminUserId);
+    
+    const auditResult = status === 'approved' ? 'approved' : (status === 'rejected' ? 'rejected' : null);
+    
+    if (auditResult) {
+      await TenantAuditHistory.create({
+        tenantId,
+        previousStatus,
+        newStatus: status,
+        auditResult,
+        rejectReason: status === 'rejected' ? (rejectReason || null) : null,
+        auditorId: adminUserId,
+        auditorUsername: admin ? admin.username : null
+      });
+    }
+  }
+  
+  // 记录操作日志
+  await OperationLog.create({
+    userId: adminUserId,
+    operationType: 'update_tenant_status',
+    operationModule: 'tenant',
+    operationDesc: `更新租户审核状态，租户ID: ${tenantId}, 新状态: ${status || tenant.status}`
+  });
+  
+  logger.info(`管理员更新租户审核状态，租户ID: ${tenantId}`);
+  
+  return tenant;
+};
+
+/**
+ * 获取所有上架商品列表
+ */
+const getOnShelfProducts = async (page = 1, pageSize = 20, keyword = null) => {
+  const offset = (page - 1) * pageSize;
+  
+  const where = {
+    status: 'on_shelf',
+    isDeleted: 0
+  };
+  
+  if (keyword) {
+    where.name = { [Op.like]: `%${keyword}%` };
+  }
+  
+  const { count, rows } = await Product.findAndCountAll({
+    where,
+    include: [{
+      model: Tenant,
+      as: 'tenant',
+      attributes: ['id', 'name'],
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['id', 'username', 'nickname']
+      }]
+    }],
+    limit: parseInt(pageSize),
+    offset: parseInt(offset),
+    order: [['createdAt', 'DESC']]
+  });
+  
+  return {
+    total: count,
+    page: parseInt(page),
+    pageSize: parseInt(pageSize),
+    list: rows
+  };
+};
+
+/**
+ * 获取租户审核历史
+ */
+const getTenantAuditHistory = async (tenantId, page = 1, pageSize = 20) => {
+  const offset = (page - 1) * pageSize;
+  
+  const { count, rows } = await TenantAuditHistory.findAndCountAll({
+    where: { tenantId },
+    include: [{
+      model: User,
+      as: 'auditor',
+      attributes: ['id', 'username', 'nickname']
+    }],
+    limit: parseInt(pageSize),
+    offset: parseInt(offset),
+    order: [['createdAt', 'DESC']]
+  });
+  
+  return {
+    total: count,
+    page: parseInt(page),
+    pageSize: parseInt(pageSize),
+    list: rows
+  };
+};
+
 module.exports = {
   getPendingTenants,
   approveTenant,
   rejectTenant,
   getUserList,
   resetUserPassword,
-  updateUserStatus
+  updateUserStatus,
+  getUserDetail,
+  updateUserInfo,
+  updateTenantStatus,
+  getOnShelfProducts,
+  getTenantAuditHistory
 };
 

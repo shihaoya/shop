@@ -49,8 +49,11 @@
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
+            <el-button type="primary" size="small" @click="handleEdit(row)">
+              编辑
+            </el-button>
             <el-button type="warning" size="small" @click="handleResetPassword(row.id)">
               重置密码
             </el-button>
@@ -70,12 +73,61 @@
         />
       </div>
     </el-card>
+
+    <!-- 编辑用户对话框 -->
+    <el-dialog v-model="showEditDialog" title="编辑用户信息" width="700px">
+      <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="100px">
+        <el-form-item label="用户名">
+          <el-input v-model="editForm.username" disabled />
+        </el-form-item>
+        <el-form-item label="昵称" prop="nickname">
+          <el-input v-model="editForm.nickname" placeholder="请输入昵称" />
+        </el-form-item>
+        <el-form-item label="角色" prop="role">
+          <el-select v-model="editForm.role" placeholder="请选择角色" style="width: 100%">
+            <el-option label="管理员" value="admin" />
+            <el-option label="运营方" value="operator" />
+            <el-option label="普通用户" value="user" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-radio-group v-model="editForm.status">
+            <el-radio :label="1">启用</el-radio>
+            <el-radio :label="0">禁用</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <!-- 如果是运营方，显示租户审核状态 -->
+        <template v-if="editForm.role === 'operator' && editForm.tenantInfo">
+          <el-divider content-position="left">租户审核信息</el-divider>
+          <el-form-item label="租户名称">
+            <el-input v-model="editForm.tenantInfo.name" disabled />
+          </el-form-item>
+          <el-form-item label="审核状态">
+            <el-select v-model="editForm.tenantInfo.status" placeholder="请选择审核状态" style="width: 100%">
+              <el-option label="待审核" value="pending" />
+              <el-option label="已通过" value="approved" />
+              <el-option label="已拒绝" value="rejected" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="拒绝原因" v-if="editForm.tenantInfo.status === 'rejected'">
+            <el-input v-model="editForm.tenantInfo.rejectReason" type="textarea" :rows="3" placeholder="请输入拒绝原因" />
+          </el-form-item>
+        </template>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitEdit" :loading="submitting">
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getUserList, resetUserPassword, updateUserStatus } from '@/api/admin'
+import { getUserList, resetUserPassword, updateUserStatus, getUserDetail, updateUserInfo, updateTenantStatus } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
@@ -86,6 +138,19 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const searchKeyword = ref('')
+
+// 编辑相关
+const showEditDialog = ref(false)
+const submitting = ref(false)
+const editFormRef = ref(null)
+const editForm = ref({
+  id: null,
+  username: '',
+  nickname: '',
+  role: '',
+  status: 1,
+  tenantInfo: null
+})
 
 const formatDate = (date) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
@@ -151,6 +216,60 @@ const handleStatusChange = async (user) => {
     user.status = user.status === 1 ? 0 : 1
     console.error('更新状态失败:', error)
   }
+}
+
+const handleEdit = async (user) => {
+  try {
+    const res = await getUserDetail(user.id)
+    const userData = res.data
+    
+    editForm.value = {
+      id: userData.id,
+      username: userData.username,
+      nickname: userData.nickname || '',
+      role: userData.role,
+      status: userData.status,
+      tenantInfo: userData.tenantInfo
+    }
+    
+    showEditDialog.value = true
+  } catch (error) {
+    console.error('获取用户详情失败:', error)
+  }
+}
+
+const handleSubmitEdit = async () => {
+  if (!editFormRef.value) return
+  
+  await editFormRef.value.validate(async (valid) => {
+    if (valid) {
+      submitting.value = true
+      try {
+        // 更新用户基本信息
+        await updateUserInfo(editForm.value.id, {
+          nickname: editForm.value.nickname,
+          role: editForm.value.role,
+          status: editForm.value.status
+        })
+        
+        // 如果是运营方且有租户信息，更新租户审核状态
+        if (editForm.value.role === 'operator' && editForm.value.tenantInfo) {
+          await updateTenantStatus(editForm.value.tenantInfo.id, {
+            status: editForm.value.tenantInfo.status,
+            rejectReason: editForm.value.tenantInfo.rejectReason
+          })
+        }
+        
+        ElMessage.success('更新成功')
+        showEditDialog.value = false
+        loadData()
+      } catch (error) {
+        console.error('更新失败:', error)
+      } finally {
+        submitting.value = false
+      }
+    }
+  })
 }
 
 onMounted(() => {

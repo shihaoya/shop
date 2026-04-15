@@ -164,9 +164,82 @@ const refreshToken = async (oldToken) => {
   }
 };
 
+/**
+ * 修改密码
+ */
+const changePassword = async (userId, oldPassword, newPassword) => {
+  // 查询用户
+  const user = await User.findOne({
+    where: { id: userId, isDeleted: 0 }
+  });
+  
+  if (!user) {
+    throw new Error('用户不存在');
+  }
+  
+  // 验证旧密码
+  const isValidPassword = await verifyPassword(oldPassword, user.password);
+  
+  if (!isValidPassword) {
+    throw new Error('旧密码错误');
+  }
+  
+  // 验证新密码强度
+  if (newPassword.length < 8) {
+    throw new Error('密码长度至少8位');
+  }
+  
+  if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+    throw new Error('密码必须包含字母和数字');
+  }
+  
+  // 加密新密码
+  const hashedPassword = await hashPassword(newPassword);
+  
+  // 更新密码
+  await user.update({ password: hashedPassword });
+  
+  logger.info(`用户修改密码成功: ${user.username}`);
+  
+  return true;
+};
+
+/**
+ * 更新用户信息
+ */
+const updateProfile = async (userId, profileData) => {
+  const user = await User.findByPk(userId);
+  
+  if (!user) {
+    throw new Error('用户不存在');
+  }
+  
+  const allowedFields = ['nickname'];
+  const updateData = {};
+  
+  allowedFields.forEach(field => {
+    if (profileData[field] !== undefined) {
+      updateData[field] = profileData[field];
+    }
+  });
+  
+  await user.update(updateData);
+  
+  logger.info(`用户更新资料: ${user.username}`);
+  
+  return {
+    id: user.id,
+    username: user.username,
+    nickname: user.nickname,
+    role: user.role
+  };
+};
+
 module.exports = {
   register,
   login,
-  refreshToken
+  refreshToken,
+  changePassword,
+  updateProfile
 };
 

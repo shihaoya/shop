@@ -55,6 +55,28 @@ const login = async (req, res) => {
 };
 
 /**
+ * 修改密码
+ */
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { oldPassword, newPassword } = req.body;
+    
+    // 参数验证
+    if (!oldPassword || !newPassword) {
+      return error(res, '旧密码和新密码不能为空', 400);
+    }
+    
+    const result = await authService.changePassword(userId, oldPassword, newPassword);
+    
+    return success(res, null, '密码修改成功');
+  } catch (err) {
+    logger.error(`修改密码失败: ${err.message}`);
+    return error(res, err.message, 400);
+  }
+};
+
+/**
  * 刷新Token
  */
 const refreshToken = async (req, res) => {
@@ -82,9 +104,28 @@ const logout = async (req, res) => {
   return success(res, null, '退出成功');
 };
 
+/**
+ * 更新用户资料
+ */
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const profileData = req.body;
+    
+    const user = await authService.updateProfile(userId, profileData);
+    
+    return success(res, user, '资料更新成功');
+  } catch (err) {
+    logger.error(`更新资料失败: ${err.message}`);
+    return error(res, err.message, 400);
+  }
+};
+
 module.exports = {
   register,
   login,
   refreshToken,
-  logout
+  logout,
+  changePassword,
+  updateProfile
 };

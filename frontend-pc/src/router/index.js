@@ -16,14 +16,21 @@ const routes = [
   },
   {
     path: '/',
-    redirect: (to) => {
+    redirect: () => {
       const userStore = useUserStore()
       if (!userStore.isLoggedIn) {
         return '/login'
       }
       
-      // 根据角色重定向到对应的首页
-      return getDefaultHomePage(userStore.userRole)
+      // 根据角色自动获取对应的第一个子路由作为首页
+      const role = userStore.userRole
+      for (const route of routes) {
+        if (route.children && route.meta?.role === role) {
+          return route.path + '/' + route.children[0].path
+        }
+      }
+      
+      return '/login'
     }
   },
   // 管理员路由
@@ -49,6 +56,12 @@ const routes = [
         name: 'UserManage',
         component: () => import('@/views/Admin/UserManage.vue'),
         meta: { title: '用户管理' }
+      },
+      {
+        path: 'products',
+        name: 'AdminProductManage',
+        component: () => import('@/views/Admin/ProductManage.vue'),
+        meta: { title: '上架商品管理' }
       }
     ]
   },
@@ -58,6 +71,18 @@ const routes = [
     component: () => import('@/components/Layout/index.vue'),
     meta: { requiresAuth: true, role: 'operator' },
     children: [
+      {
+        path: 'profile',
+        name: 'OperatorProfile',
+        component: () => import('@/views/User/Profile.vue'),
+        meta: { title: '个人中心' }
+      },
+      {
+        path: 'dashboard',
+        name: 'OperatorDashboard',
+        component: () => import('@/views/Operator/Dashboard.vue'),
+        meta: { title: '工作台' }
+      },
       {
         path: 'products',
         name: 'ProductManage',
@@ -138,7 +163,7 @@ router.beforeEach((to, from) => {
     
     // 检查角色权限
     if (to.meta.role && userStore.userRole !== to.meta.role) {
-      // 根据角色重定向到对应的首页，避免循环
+      // 根据角色重定向到对应的首页
       return getDefaultHomePage(userStore.userRole)
     }
   }
