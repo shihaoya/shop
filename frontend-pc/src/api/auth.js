@@ -20,9 +20,14 @@ export const logout = () => {
   return request.post('/auth/logout')
 }
 
-// 获取用户信息
-export const getUserInfo = () => {
-  return request.get('/auth/profile')
+// 获取当前用户信息
+export const getMe = (params) => {
+  return request.get('/auth/me', { params })
+}
+
+// 获取用户信息（别名）
+export const getUserInfo = (params) => {
+  return getMe(params)
 }
 
 // 修改密码

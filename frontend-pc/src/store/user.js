@@ -41,9 +41,9 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // 获取用户信息
-  const getUserInfo = async () => {
+  const getUserInfo = async (params) => {
     try {
-      const res = await getUserInfoApi()
+      const res = await getUserInfoApi(params)
       userInfo.value = res.data
       localStorage.setItem('user', JSON.stringify(res.data))
       return res

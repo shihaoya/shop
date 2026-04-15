@@ -34,12 +34,12 @@
       <!-- 商品列表 -->
       <el-table :data="tableData" v-loading="loading" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="商品图片" width="120">
+        <el-table-column label="商品图片" width="100">
           <template #default="{ row }">
             <el-image 
               v-if="row.imageUrl" 
               :src="getImageUrl(row.imageUrl)" 
-              style="width: 80px; height: 80px"
+              style="width: 60px; height: 60px"
               fit="cover"
               :preview-src-list="[getImageUrl(row.imageUrl)]"
               preview-teleported

@@ -1,4 +1,5 @@
 const authService = require('../services/authService');
+const { User } = require('../models');
 const { success, error } = require('../utils/response');
 const { logger } = require('../middlewares/logger');
 
@@ -105,6 +106,54 @@ const logout = async (req, res) => {
 };
 
 /**
+ * 获取当前用户信息
+ */
+const getMe = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'nickname', 'role', 'status', 'createdAt']
+    });
+    
+    if (!user) {
+      return error(res, '用户不存在', 404);
+    }
+    
+    // 如果是普通用户，尝试获取当前租户的积分余额
+    if (user.role === 'user') {
+      const { UserTenantRelation } = require('../models');
+      const tenantId = req.query.tenantId;
+      
+      if (tenantId) {
+        const relation = await UserTenantRelation.findOne({
+          where: {
+            userId,
+            tenantId,
+            status: 'approved',
+            isDeleted: 0
+          },
+          attributes: ['pointsBalance']
+        });
+        
+        if (relation) {
+          user.dataValues.pointsBalance = relation.pointsBalance;
+        } else {
+          user.dataValues.pointsBalance = 0;
+        }
+      } else {
+        user.dataValues.pointsBalance = 0;
+      }
+    }
+    
+    return success(res, user, '获取成功');
+  } catch (err) {
+    logger.error(`获取用户信息失败: ${err.message}`);
+    return error(res, err.message, 500);
+  }
+};
+
+/**
  * 更新用户资料
  */
 const updateProfile = async (req, res) => {
@@ -126,6 +175,7 @@ module.exports = {
   login,
   refreshToken,
   logout,
+  getMe,
   changePassword,
   updateProfile
 };

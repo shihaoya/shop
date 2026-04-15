@@ -38,12 +38,12 @@
       <!-- 商品列表 -->
       <el-table :data="productList" v-loading="loading" border stripe>
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="商品图片" width="120">
+        <el-table-column label="商品图片" width="100">
           <template #default="{ row }">
             <el-image 
               v-if="row.imageUrl" 
               :src="getImageUrl(row.imageUrl)" 
-              style="width: 80px; height: 80px"
+              style="width: 60px; height: 60px"
               fit="cover"
               :preview-src-list="[getImageUrl(row.imageUrl)]"
               preview-teleported
@@ -214,6 +214,9 @@ const fetchData = async () => {
       productList.value = res.data.list
       pagination.total = res.data.total
     }
+    
+    // 刷新用户信息以获取最新积分
+    await userStore.getUserInfo({ tenantId: currentTenantId.value })
   } catch (error) {
     ElMessage.error('获取商品列表失败')
   } finally {
