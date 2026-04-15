@@ -72,6 +72,11 @@
             <template #title>我的申请</template>
           </el-menu-item>
           
+          <el-menu-item index="/user/orders">
+            <el-icon><DocumentChecked /></el-icon>
+            <template #title>我的订单</template>
+          </el-menu-item>
+          
           <el-menu-item index="/user/profile">
             <el-icon><Avatar /></el-icon>
             <template #title>个人中心</template>
@@ -95,6 +100,22 @@
         </div>
         
         <div class="header-right">
+          <!-- 普通用户：运营方切换下拉框 -->
+          <el-select 
+            v-if="userStore.userRole === 'user'" 
+            v-model="selectedTenantId" 
+            placeholder="选择运营方" 
+            @change="handleTenantChange"
+            style="width: 180px; margin-right: 16px"
+          >
+            <el-option
+              v-for="tenant in approvedTenants"
+              :key="tenant.tenant.id"
+              :label="tenant.tenant.name"
+              :value="tenant.tenant.id"
+            />
+          </el-select>
+          
           <el-dropdown @command="handleCommand">
             <div class="user-info">
               <el-avatar :size="36" class="user-avatar">
@@ -135,11 +156,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { useTenantStore } from '@/store/tenant'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import ChangePassword from '@/components/Common/ChangePassword.vue'
+import { getMyApplications } from '@/api'
 import {
   ShoppingBag,
   HomeFilled,
@@ -156,11 +179,47 @@ import {
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const tenantStore = useTenantStore()
 
 const isCollapse = ref(false)
 const showChangePassword = ref(false)
+const selectedTenantId = ref(null)
+const approvedTenants = ref([])
 
 const activeMenu = computed(() => route.path)
+
+// 加载已通过的运营方列表
+const loadApprovedTenants = async () => {
+  if (userStore.userRole !== 'user') return
+  
+  try {
+    const res = await getMyApplications({ page: 1, pageSize: 100 })
+    if (res.code === 200) {
+      approvedTenants.value = res.data.list.filter(item => item.status === 'approved')
+      
+      // 如果当前没有选中运营方，默认选中第一个
+      if (!tenantStore.currentTenantId && approvedTenants.value.length > 0) {
+        const firstTenant = approvedTenants.value[0]
+        selectedTenantId.value = firstTenant.tenant.id
+        tenantStore.setCurrentTenant(firstTenant.tenant.id, firstTenant.tenant)
+      } else {
+        selectedTenantId.value = tenantStore.currentTenantId
+      }
+    }
+  } catch (error) {
+    console.error('加载运营方列表失败:', error)
+  }
+}
+
+// 切换运营方
+const handleTenantChange = (tenantId) => {
+  const tenant = approvedTenants.value.find(item => item.tenant.id === tenantId)
+  if (tenant) {
+    tenantStore.setCurrentTenant(tenantId, tenant.tenant)
+    ElMessage.success(`已切换到：${tenant.tenant.name}`)
+    // 可以在这里触发全局事件或刷新页面数据
+  }
+}
 
 // 显示名称：昵称(用户名)
 const displayName = computed(() => {
@@ -181,6 +240,10 @@ const displayNickname = computed(() => {
   const userInfo = userStore.userInfo
   if (!userInfo) return '?'
   return userInfo.nickname || userInfo.username || '?'
+})
+
+onMounted(() => {
+  loadApprovedTenants()
 })
 
 const toggleCollapse = () => {

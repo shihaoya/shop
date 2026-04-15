@@ -6,6 +6,7 @@ const OperationLog = require('./OperationLog');
 const Product = require('./Product');
 const PointTransaction = require('./PointTransaction');
 const TenantAuditHistory = require('./TenantAuditHistory');
+const Order = require('./Order');
 
 // 定义关联关系
 User.hasOne(Tenant, { foreignKey: 'userId', as: 'tenant' });
@@ -33,6 +34,16 @@ Tenant.hasMany(TenantAuditHistory, { foreignKey: 'tenantId', as: 'auditHistory' 
 TenantAuditHistory.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 TenantAuditHistory.belongsTo(User, { foreignKey: 'auditorId', as: 'auditor' });
 
+// 订单关联
+User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
+Order.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+Tenant.hasMany(Order, { foreignKey: 'tenantId', as: 'orders' });
+Order.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+
+Product.hasMany(Order, { foreignKey: 'productId', as: 'orders' });
+Order.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+
 module.exports = {
   sequelize,
   User,
@@ -41,5 +52,6 @@ module.exports = {
   OperationLog,
   Product,
   PointTransaction,
-  TenantAuditHistory
+  TenantAuditHistory,
+  Order
 };

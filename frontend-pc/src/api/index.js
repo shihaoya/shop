@@ -252,3 +252,51 @@ export function changePassword(data) {
     data
   })
 }
+
+// 订单相关
+export function createOrder(data) {
+  return request({
+    url: '/orders',
+    method: 'post',
+    data
+  })
+}
+
+export function getMyOrders(params) {
+  return request({
+    url: '/orders',
+    method: 'get',
+    params
+  })
+}
+
+export function getOrderDetail(id) {
+  return request({
+    url: `/orders/${id}`,
+    method: 'get'
+  })
+}
+
+export function cancelOrder(id) {
+  return request({
+    url: `/orders/${id}/cancel`,
+    method: 'post'
+  })
+}
+
+// 运营方订单管理
+export function getOperatorOrders(params) {
+  return request({
+    url: '/operator/orders',
+    method: 'get',
+    params
+  })
+}
+
+export function updateOrderStatus(id, data) {
+  return request({
+    url: `/operator/orders/${id}/status`,
+    method: 'put',
+    data
+  })
+}

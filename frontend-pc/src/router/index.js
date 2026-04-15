@@ -122,6 +122,12 @@ const routes = [
         meta: { title: '我的申请' }
       },
       {
+        path: 'orders',
+        name: 'UserOrders',
+        component: () => import('@/views/User/Orders.vue'),
+        meta: { title: '我的订单' }
+      },
+      {
         path: 'profile',
         name: 'UserProfile',
         component: () => import('@/views/User/Profile.vue'),
