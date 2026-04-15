@@ -43,25 +43,25 @@ const routes = [
         path: 'dashboard',
         name: 'AdminDashboard',
         component: () => import('@/views/Admin/Dashboard.vue'),
-        meta: { title: '工作台' }
+        meta: { title: '工作台', icon: 'HomeFilled' }
       },
       {
         path: 'audit',
         name: 'TenantAudit',
         component: () => import('@/views/Admin/TenantAudit.vue'),
-        meta: { title: '运营方审核' }
+        meta: { title: '运营方审核', icon: 'UserFilled' }
       },
       {
         path: 'users',
         name: 'UserManage',
         component: () => import('@/views/Admin/UserManage.vue'),
-        meta: { title: '用户管理' }
+        meta: { title: '用户管理', icon: 'Avatar' }
       },
       {
         path: 'products',
         name: 'AdminProductManage',
         component: () => import('@/views/Admin/ProductManage.vue'),
-        meta: { title: '上架商品管理' }
+        meta: { title: '上架商品管理', icon: 'ShoppingBag' }
       }
     ]
   },
@@ -75,31 +75,31 @@ const routes = [
         path: 'dashboard',
         name: 'OperatorDashboard',
         component: () => import('@/views/Operator/Dashboard.vue'),
-        meta: { title: '工作台' }
-      },
-      {
-        path: 'profile',
-        name: 'OperatorProfile',
-        component: () => import('@/views/User/Profile.vue'),
-        meta: { title: '个人中心' }
+        meta: { title: '工作台', icon: 'HomeFilled' }
       },
       {
         path: 'products',
         name: 'ProductManage',
         component: () => import('@/views/Operator/ProductManage.vue'),
-        meta: { title: '商品管理' }
+        meta: { title: '商品管理', icon: 'ShoppingBag' }
       },
       {
         path: 'users',
         name: 'OperatorUserManage',
         component: () => import('@/views/Operator/UserManage.vue'),
-        meta: { title: '用户管理' }
+        meta: { title: '用户管理', icon: 'Avatar' }
       },
       {
         path: 'points',
         name: 'PointsManage',
         component: () => import('@/views/Operator/PointsManage.vue'),
-        meta: { title: '积分管理' }
+        meta: { title: '积分管理', icon: 'UserFilled' }
+      },
+      {
+        path: 'profile',
+        name: 'OperatorProfile',
+        component: () => import('@/views/User/Profile.vue'),
+        meta: { title: '个人中心', icon: 'Avatar' }
       }
     ]
   },
@@ -113,25 +113,25 @@ const routes = [
         path: 'tenants',
         name: 'UserTenants',
         component: () => import('@/views/User/Tenants.vue'),
-        meta: { title: '运营方列表' }
+        meta: { title: '运营方列表', icon: 'HomeFilled' }
       },
       {
         path: 'products',
         name: 'UserProducts',
         component: () => import('@/views/User/ProductsList.vue'),
-        meta: { title: '商品列表' }
+        meta: { title: '商品列表', icon: 'ShoppingBag' }
       },
       {
         path: 'orders',
         name: 'UserOrders',
         component: () => import('@/views/User/Orders.vue'),
-        meta: { title: '我的订单' }
+        meta: { title: '我的订单', icon: 'DocumentChecked' }
       },
       {
         path: 'profile',
         name: 'UserProfile',
         component: () => import('@/views/User/Profile.vue'),
-        meta: { title: '个人中心' }
+        meta: { title: '个人中心', icon: 'Avatar' }
       }
     ]
   }
@@ -153,6 +153,9 @@ const router = createRouter({
   history: createWebHistory(),
   routes
 })
+
+// 导出路由配置，供 Layout 组件动态生成菜单使用
+export { routes }
 
 // 路由守卫
 router.beforeEach((to, from) => {

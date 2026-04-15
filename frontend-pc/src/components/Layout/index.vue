@@ -3,7 +3,9 @@
     <!-- 侧边栏 -->
     <el-aside :width="isCollapse ? '64px' : '240px'" class="sidebar">
       <div class="logo">
-        <el-icon v-if="!isCollapse" :size="32" color="#fff"><ShoppingBag /></el-icon>
+        <el-icon v-if="!isCollapse" :size="32" color="#fff">
+          <component :is="ElementPlusIconsVue['ShoppingBag']" />
+        </el-icon>
         <span v-if="!isCollapse" class="logo-text">积分系统</span>
       </div>
       
@@ -14,75 +16,16 @@
         router
         class="sidebar-menu"
       >
-        <!-- 管理员菜单 -->
-        <template v-if="userStore.userRole === 'admin'">
-          <el-menu-item index="/admin/dashboard">
-            <el-icon><HomeFilled /></el-icon>
-            <template #title>工作台</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/admin/audit">
-            <el-icon><UserFilled /></el-icon>
-            <template #title>运营方审核</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/admin/users">
-            <el-icon><Avatar /></el-icon>
-            <template #title>用户管理</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/admin/products">
-            <el-icon><ShoppingBag /></el-icon>
-            <template #title>上架商品管理</template>
-          </el-menu-item>
-        </template>
-
-        <!-- 运营方菜单 -->
-        <template v-else-if="userStore.userRole === 'operator'">
-          
-          <el-menu-item index="/operator/products">
-            <el-icon><ShoppingBag /></el-icon>
-            <template #title>商品管理</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/operator/users">
-            <el-icon><Avatar /></el-icon>
-            <template #title>用户管理</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/operator/points">
-            <el-icon><UserFilled /></el-icon>
-            <template #title>积分管理</template>
-          </el-menu-item>
-
-          <el-menu-item index="/operator/profile">
-            <el-icon><Avatar /></el-icon>
-            <template #title>个人中心</template>
-          </el-menu-item>
-        </template>
-
-        <!-- 普通用户菜单 -->
-        <template v-else-if="userStore.userRole === 'user'">
-          <el-menu-item index="/user/tenants">
-            <el-icon><HomeFilled /></el-icon>
-            <template #title>运营方列表</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/user/products">
-            <el-icon><ShoppingBag /></el-icon>
-            <template #title>商品列表</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/user/orders">
-            <el-icon><DocumentChecked /></el-icon>
-            <template #title>我的订单</template>
-          </el-menu-item>
-          
-          <el-menu-item index="/user/profile">
-            <el-icon><Avatar /></el-icon>
-            <template #title>个人中心</template>
-          </el-menu-item>
-        </template>
+        <el-menu-item 
+          v-for="item in menuItems" 
+          :key="item.path"
+          :index="item.path"
+        >
+          <el-icon>
+            <component :is="ElementPlusIconsVue[item.icon]" />
+          </el-icon>
+          <template #title>{{ item.title }}</template>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -164,18 +107,8 @@ import { useTenantStore } from '@/store/tenant'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import ChangePassword from '@/components/Common/ChangePassword.vue'
 import { getMyApplications } from '@/api'
-import {
-  ShoppingBag,
-  HomeFilled,
-  UserFilled,
-  Avatar,
-  Fold,
-  Expand,
-  ArrowDown,
-  SwitchButton,
-  Lock,
-  DocumentChecked
-} from '@element-plus/icons-vue'
+import { routes } from '@/router'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -188,6 +121,21 @@ const selectedTenantId = ref(null)
 const approvedTenants = ref([])
 
 const activeMenu = computed(() => route.path)
+
+// 动态生成菜单
+const menuItems = computed(() => {
+  const role = userStore.userRole
+  const roleRoute = routes.find(r => r.meta?.role === role && r.children)
+  if (!roleRoute?.children) return []
+  
+  return roleRoute.children
+    .filter(child => child.meta?.title) // 只保留有 title 的路由
+    .map(child => ({
+      path: `${roleRoute.path}/${child.path}`,
+      title: child.meta.title,
+      icon: child.meta.icon || 'Document'
+    }))
+})
 
 // 加载已通过的运营方列表
 const loadApprovedTenants = async () => {
