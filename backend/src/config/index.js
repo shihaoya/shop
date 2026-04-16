@@ -1,4 +1,10 @@
-require('dotenv').config();
+const path = require('path');
+
+// 根据环境加载对应的 .env 文件
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+require('dotenv').config({ path: path.resolve(__dirname, '../../', envFile) });
+
+console.log(`📝 加载配置文件: ${envFile} (NODE_ENV=${process.env.NODE_ENV})`);
 
 module.exports = {
   port: process.env.PORT || 8367,
@@ -13,9 +19,9 @@ module.exports = {
     dialect: 'mysql',
     timezone: '+08:00',
     pool: {
-      max: 10,
+      max: process.env.NODE_ENV === 'test' ? 5 : 10,  // 测试环境减少连接数
       min: 0,
-      acquire: 30000,
+      acquire: process.env.NODE_ENV === 'test' ? 60000 : 30000,  // 测试环境增加超时时间
       idle: 10000
     },
     define: {
@@ -23,7 +29,10 @@ module.exports = {
       underscored: true,
       charset: 'utf8mb4',
       collate: 'utf8mb4_unicode_ci'
-    }
+    },
+    // 测试环境额外配置
+    logging: process.env.NODE_ENV === 'test' ? false : console.log,
+    benchmark: process.env.NODE_ENV === 'test'
   },
   
   jwt: {

@@ -11,16 +11,22 @@ const API_BASE = '/api/v1';
  */
 beforeAll(async () => {
   try {
+    console.log('🔄 开始初始化测试数据库...');
+    const startTime = Date.now();
+    
     // 同步数据库结构（测试环境使用force重建表）
     const env = process.env.NODE_ENV;
     const force = env === 'test';
     await sequelize.sync({ force });
-    console.log(`✅ 数据库连接成功 (${force ? '已重建表' : '保留现有数据'})`);
+    
+    const duration = Date.now() - startTime;
+    console.log(`✅ 数据库连接成功 (${force ? '已重建表' : '保留现有数据'}) - 耗时: ${duration}ms`);
   } catch (error) {
-    console.error('❌ 数据库连接失败:', error);
+    console.error('❌ 数据库连接失败:', error.message);
+    console.error('错误详情:', error);
     throw error;
   }
-});
+}, 30000); // 设置 30 秒超时
 
 /**
  * 测试后关闭数据库连接

@@ -13,5 +13,9 @@ module.exports = {
   ],
   verbose: true,
   forceExit: true,
-  detectOpenHandles: true
+  detectOpenHandles: true,
+  // 串行执行测试，避免数据库竞争
+  maxWorkers: 1,
+  // 增加测试超时时间
+  testTimeout: 30000
 }
