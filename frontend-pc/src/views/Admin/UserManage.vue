@@ -4,20 +4,48 @@
       <template #header>
         <div class="card-header">
           <span>用户管理</span>
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索用户名或昵称"
-            style="width: 300px"
-            clearable
-            @clear="loadData"
-            @keyup.enter="loadData"
-          >
-            <template #append>
-              <el-button :icon="Search" @click="loadData" />
-            </template>
-          </el-input>
         </div>
       </template>
+      
+      <!-- 搜索表单 -->
+      <el-form :inline="true" :model="searchForm" class="search-form">
+        <el-form-item label="用户名">
+          <el-input v-model="searchForm.username" placeholder="请输入用户名" clearable style="width: 180px" />
+        </el-form-item>
+        <el-form-item label="昵称">
+          <el-input v-model="searchForm.nickname" placeholder="请输入昵称" clearable style="width: 180px" />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="searchForm.role" placeholder="全部角色" clearable style="width: 150px">
+            <el-option label="管理员" value="admin" />
+            <el-option label="运营方" value="operator" />
+            <el-option label="普通用户" value="user" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="注册时间">
+          <el-date-picker
+            v-model="searchForm.dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            style="width: 240px"
+            value-format="YYYY-MM-DD"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">搜索</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </el-form-item>
+      </el-form>
+      
+      <!-- 操作按钮 -->
+      <div style="margin-bottom: 20px;">
+        <el-button type="primary" @click="handleShowCreateDialog">
+          <el-icon><Plus /></el-icon>
+          创建用户
+        </el-button>
+      </div>
       
       <el-table :data="userList" v-loading="loading" style="width: 100%">
         <el-table-column prop="username" label="用户名" width="150" />
@@ -49,13 +77,21 @@
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="handleEdit(row)">
               编辑
             </el-button>
             <el-button type="warning" size="small" @click="handleResetPassword(row.id)">
               重置密码
+            </el-button>
+            <el-button 
+              v-if="row.role !== 'admin'"
+              type="danger" 
+              size="small" 
+              @click="handleDelete(row)"
+            >
+              删除
             </el-button>
           </template>
         </el-table-column>
@@ -122,14 +158,48 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 创建用户对话框 -->
+    <el-dialog v-model="showCreateDialog" title="创建新用户" width="600px">
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="createForm.username" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="createForm.password" type="password" placeholder="请输入密码（至少8位）" show-password />
+        </el-form-item>
+        <el-form-item label="昵称" prop="nickname">
+          <el-input v-model="createForm.nickname" placeholder="请输入昵称" />
+        </el-form-item>
+        <el-form-item label="角色" prop="role">
+          <el-select v-model="createForm.role" placeholder="请选择角色" style="width: 100%">
+            <el-option label="管理员" value="admin" />
+            <el-option label="运营方" value="operator" />
+            <el-option label="普通用户" value="user" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态" prop="status">
+          <el-radio-group v-model="createForm.status">
+            <el-radio :label="1">启用</el-radio>
+            <el-radio :label="0">禁用</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showCreateDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmitCreate" :loading="creating">
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getUserList, resetUserPassword, updateUserStatus, getUserDetail, updateUserInfo, updateTenantStatus } from '@/api/admin'
+import { getUserList, resetUserPassword, updateUserStatus, getUserDetail, updateUserInfo, updateTenantStatus, createUser, deleteUser } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Plus } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
@@ -137,7 +207,14 @@ const userList = ref([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
-const searchKeyword = ref('')
+
+// 搜索表单
+const searchForm = ref({
+  username: '',
+  nickname: '',
+  role: '',
+  dateRange: []
+})
 
 // 编辑相关
 const showEditDialog = ref(false)
@@ -151,6 +228,41 @@ const editForm = ref({
   status: 1,
   tenantInfo: null
 })
+
+// 创建用户相关
+const showCreateDialog = ref(false)
+const creating = ref(false)
+const createFormRef = ref(null)
+const createForm = ref({
+  username: '',
+  password: '',
+  nickname: '',
+  role: 'user',
+  status: 1
+})
+
+const createRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 20, message: '用户名长度在3-20个字符', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 8, message: '密码长度至少8位', trigger: 'blur' }
+  ],
+  role: [
+    { required: true, message: '请选择角色', trigger: 'change' }
+  ]
+}
+
+const editRules = {
+  nickname: [
+    { required: true, message: '请输入昵称', trigger: 'blur' }
+  ],
+  role: [
+    { required: true, message: '请选择角色', trigger: 'change' }
+  ]
+}
 
 const formatDate = (date) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm')
@@ -177,11 +289,21 @@ const getRoleText = (role) => {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await getUserList({
+    const params = {
       page: currentPage.value,
       pageSize: pageSize.value,
-      keyword: searchKeyword.value
-    })
+      username: searchForm.value.username,
+      nickname: searchForm.value.nickname,
+      role: searchForm.value.role
+    }
+    
+    // 处理日期范围
+    if (searchForm.value.dateRange && searchForm.value.dateRange.length === 2) {
+      params.startDate = searchForm.value.dateRange[0]
+      params.endDate = searchForm.value.dateRange[1]
+    }
+    
+    const res = await getUserList(params)
     userList.value = res.data.list
     total.value = res.data.total
   } catch (error) {
@@ -189,6 +311,24 @@ const loadData = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// 搜索
+const handleSearch = () => {
+  currentPage.value = 1
+  loadData()
+}
+
+// 重置
+const handleReset = () => {
+  searchForm.value = {
+    username: '',
+    nickname: '',
+    role: '',
+    dateRange: []
+  }
+  currentPage.value = 1
+  loadData()
 }
 
 const handleResetPassword = async (id) => {
@@ -272,6 +412,62 @@ const handleSubmitEdit = async () => {
   })
 }
 
+// 显示创建对话框
+const handleShowCreateDialog = () => {
+  createForm.value = {
+    username: '',
+    password: '',
+    nickname: '',
+    role: 'user',
+    status: 1
+  }
+  showCreateDialog.value = true
+}
+
+// 提交创建用户
+const handleSubmitCreate = async () => {
+  if (!createFormRef.value) return
+  
+  await createFormRef.value.validate(async (valid) => {
+    if (valid) {
+      creating.value = true
+      try {
+        await createUser(createForm.value)
+        ElMessage.success('创建成功')
+        showCreateDialog.value = false
+        loadData()
+      } catch (error) {
+        console.error('创建失败:', error)
+      } finally {
+        creating.value = false
+      }
+    }
+  })
+}
+
+// 删除用户
+const handleDelete = async (user) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除用户 ${user.username} 吗？此操作不可恢复！`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    await deleteUser(user.id)
+    ElMessage.success('删除成功')
+    loadData()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.message || '删除失败')
+    }
+  }
+}
+
 onMounted(() => {
   loadData()
 })
@@ -288,6 +484,13 @@ onMounted(() => {
   align-items: center;
   font-weight: 600;
   font-size: 16px;
+}
+
+.search-form {
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
 }
 
 .pagination {

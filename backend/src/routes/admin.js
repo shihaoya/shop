@@ -16,7 +16,9 @@ router.post('/tenants/:id/reject', adminController.rejectTenant);
 
 router.get('/users', adminController.getUserList);
 router.get('/users/:id', adminController.getUserDetail);
+router.post('/users', adminController.createUser);
 router.put('/users/:id', adminController.updateUserInfo);
+router.delete('/users/:id', adminController.deleteUser);
 router.post('/users/:id/reset-password', adminController.resetUserPassword);
 router.put('/users/:id/status', adminController.updateUserStatus);
 

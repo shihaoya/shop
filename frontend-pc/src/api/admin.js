@@ -25,6 +25,16 @@ export const getUserList = (params) => {
   return request.get('/admin/users', { params })
 }
 
+// 创建新用户
+export const createUser = (data) => {
+  return request.post('/admin/users', data)
+}
+
+// 删除用户
+export const deleteUser = (id) => {
+  return request.delete(`/admin/users/${id}`)
+}
+
 // 重置用户密码
 export const resetUserPassword = (id) => {
   return request.post(`/admin/users/${id}/reset-password`)

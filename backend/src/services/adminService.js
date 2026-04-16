@@ -135,22 +135,41 @@ const rejectTenant = async (tenantId, reason, adminUserId) => {
 /**
  * 获取用户列表
  */
-const getUserList = async (page = 1, pageSize = 20, role = null, keyword = null) => {
+const getUserList = async (page = 1, pageSize = 20, params = {}) => {
   const offset = (page - 1) * pageSize;
+  const { username, nickname, role, startDate, endDate } = params;
   
   const where = {
     isDeleted: 0
   };
   
+  // 用户名模糊查询
+  if (username) {
+    where.username = { [Op.like]: `%${username}%` };
+  }
+  
+  // 昵称模糊查询
+  if (nickname) {
+    where.nickname = { [Op.like]: `%${nickname}%` };
+  }
+  
+  // 角色筛选
   if (role) {
     where.role = role;
   }
   
-  if (keyword) {
-    where[Op.or] = [
-      { username: { [Op.like]: `%${keyword}%` } },
-      { nickname: { [Op.like]: `%${keyword}%` } }
-    ];
+  // 注册时间范围筛选
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) {
+      where.createdAt[Op.gte] = new Date(startDate);
+    }
+    if (endDate) {
+      // 结束日期包含当天全天
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      where.createdAt[Op.lte] = endDateTime;
+    }
   }
   
   const { count, rows } = await User.findAndCountAll({
@@ -431,6 +450,112 @@ const getTenantAuditHistory = async (tenantId, page = 1, pageSize = 20) => {
   };
 };
 
+/**
+ * 创建新用户
+ */
+const createUser = async (userData, adminUserId) => {
+  const { username, password, nickname, role, status = 1 } = userData;
+  
+  // 验证必填字段
+  if (!username || !password) {
+    throw new Error('用户名和密码不能为空');
+  }
+  
+  // 验证角色
+  if (!['admin', 'operator', 'user'].includes(role)) {
+    throw new Error('无效的角色类型');
+  }
+  
+  // 检查用户名是否已存在
+  const existingUser = await User.findOne({
+    where: { username }
+  });
+  
+  if (existingUser) {
+    throw new Error('用户名已存在');
+  }
+  
+  // 密码加密
+  const hashedPassword = await hashPassword(password);
+  
+  // 创建用户
+  const user = await User.create({
+    username,
+    password: hashedPassword,
+    nickname: nickname || username,
+    role,
+    status: Number(status),
+    isDeleted: 0
+  });
+  
+  // 记录操作日志
+  await OperationLog.create({
+    userId: adminUserId,
+    operationType: 'create_user',
+    operationModule: 'user',
+    operationDesc: `管理员创建新用户，用户名: ${username}, 角色: ${role}`
+  });
+  
+  logger.info(`管理员创建新用户，用户名: ${username}`);
+  
+  return {
+    id: user.id,
+    username: user.username,
+    nickname: user.nickname,
+    role: user.role
+  };
+};
+
+/**
+ * 删除用户（逻辑删除）
+ */
+const deleteUser = async (userId, adminUserId) => {
+  const user = await User.findByPk(userId);
+  
+  if (!user) {
+    throw new Error('用户不存在');
+  }
+  
+  // 不允许删除自己
+  if (user.id === adminUserId) {
+    throw new Error('不能删除当前登录的管理员账号');
+  }
+  
+  // 不允许删除其他管理员
+  if (user.role === 'admin') {
+    throw new Error('不能删除管理员账号，请联系系统超级管理员');
+  }
+  
+  // 如果是运营方，检查是否有租户
+  if (user.role === 'operator') {
+    const tenant = await Tenant.findOne({
+      where: { userId }
+    });
+    
+    if (tenant) {
+      throw new Error('该用户有关联的租户，请先处理租户数据后再删除');
+    }
+  }
+  
+  // 逻辑删除
+  await user.update({
+    isDeleted: 1,
+    status: 0
+  });
+  
+  // 记录操作日志
+  await OperationLog.create({
+    userId: adminUserId,
+    operationType: 'delete_user',
+    operationModule: 'user',
+    operationDesc: `管理员删除用户，用户名: ${user.username}, 角色: ${user.role}`
+  });
+  
+  logger.info(`管理员删除用户，用户名: ${user.username}`);
+  
+  return true;
+};
+
 module.exports = {
   getPendingTenants,
   approveTenant,
@@ -442,6 +567,8 @@ module.exports = {
   updateUserInfo,
   updateTenantStatus,
   getOnShelfProducts,
-  getTenantAuditHistory
+  getTenantAuditHistory,
+  createUser,
+  deleteUser
 };
 

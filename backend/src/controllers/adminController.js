@@ -80,9 +80,10 @@ const rejectTenant = async (req, res) => {
  */
 const getUserList = async (req, res) => {
   try {
-    const { page = 1, pageSize = 20, role, keyword } = req.query;
+    const { page = 1, pageSize = 20, username, nickname, role, startDate, endDate } = req.query;
     
-    const result = await adminService.getUserList(page, pageSize, role, keyword);
+    const params = { username, nickname, role, startDate, endDate };
+    const result = await adminService.getUserList(page, pageSize, params);
     
     return success(res, result);
   } catch (err) {
@@ -223,6 +224,42 @@ const getTenantAuditHistory = async (req, res) => {
   }
 };
 
+/**
+ * 创建新用户
+ */
+const createUser = async (req, res) => {
+  try {
+    const userData = req.body;
+    const adminUserId = req.user.id;
+    
+    const user = await adminService.createUser(userData, adminUserId);
+    
+    return success(res, user, '用户创建成功');
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`创建用户失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 400);
+  }
+};
+
+/**
+ * 删除用户
+ */
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminUserId = req.user.id;
+    
+    await adminService.deleteUser(id, adminUserId);
+    
+    return success(res, null, '用户删除成功');
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : err.message;
+    logger.error(`删除用户失败: ${errorMsg}`);
+    return error(res, errorMsg || '操作失败', 400);
+  }
+};
+
 module.exports = {
   getPendingTenants,
   approveTenant,
@@ -234,5 +271,7 @@ module.exports = {
   updateUserInfo,
   updateTenantStatus,
   getOnShelfProducts,
-  getTenantAuditHistory
+  getTenantAuditHistory,
+  createUser,
+  deleteUser
 };
