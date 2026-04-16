@@ -25,8 +25,8 @@ Tenant.hasMany(Product, { foreignKey: 'tenantId', as: 'products', constraints: f
 Product.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant', constraints: false });
 
 // 商品图片关联
-Product.belongsTo(Upload, { foreignKey: 'imageUrl', as: 'imageFile', constraints: false });
-Upload.hasMany(Product, { foreignKey: 'imageUrl', as: 'products', constraints: false });
+Product.belongsTo(Upload, { foreignKey: 'image_file_id', as: 'imageFile', constraints: false });
+Upload.hasMany(Product, { foreignKey: 'image_file_id', as: 'products', constraints: false });
 
 // 积分流水关联
 User.hasMany(PointTransaction, { foreignKey: 'userId', as: 'pointTransactions', constraints: false });

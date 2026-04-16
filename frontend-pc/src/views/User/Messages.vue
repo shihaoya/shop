@@ -48,7 +48,8 @@
           <template #default="{ row }">
             <el-badge is-dot :hidden="row.isRead === 1">
               <el-icon :color="row.isRead === 1 ? '#909399' : '#409eff'" size="18">
-                <component :is="row.isRead === 1 ? 'CircleCheck' : 'Bell'" />
+                <CircleCheck v-if="row.isRead === 1" />
+                <Bell v-else />
               </el-icon>
             </el-badge>
           </template>

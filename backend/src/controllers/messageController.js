@@ -208,13 +208,16 @@ exports.getOperatorMessages = async (req, res) => {
           attributes: ['id', 'username', 'nickname']
         }
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit: parseInt(pageSize),
       offset: offset
     });
 
+    // 转换数据格式，Sequelize 会自动将下划线字段转为驼峰
+    const list = rows.map(row => row.get({ plain: true }));
+
     return success(res, {
-      list: rows,
+      list,
       total: count,
       page: parseInt(page),
       pageSize: parseInt(pageSize)

@@ -308,11 +308,11 @@ const submitExchange = async () => {
 // 获取分类类型
 const getCategoryType = (category) => {
   const map = {
-    physical: '',
+    physical: 'info',
     virtual: 'success',
     service: 'warning'
   }
-  return map[category] || ''
+  return map[category] || 'info'
 }
 
 // 获取分类文本
@@ -328,11 +328,13 @@ const getCategoryText = (category) => {
 // 获取图片完整URL
 const getImageUrl = (url) => {
   if (!url) return ''
+  // 确保是字符串类型
+  const strUrl = String(url)
   // 如果是相对路径，添加API基础URL
-  if (url.startsWith('/')) {
-    return import.meta.env.VITE_API_BASE_URL.replace('/api/v1', '') + url
+  if (strUrl.startsWith('/')) {
+    return import.meta.env.VITE_API_BASE_URL.replace('/api/v1', '') + strUrl
   }
-  return url
+  return strUrl
 }
 
 onMounted(() => {

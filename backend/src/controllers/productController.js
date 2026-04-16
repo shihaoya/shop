@@ -144,17 +144,17 @@ exports.getProducts = async (req, res) => {
 
     // 处理数据，添加图片URL
     const list = rows.map(row => {
-      const productData = row.toJSON();
-      // 保留文件ID
-      productData.imageFileId = productData.imageUrl;
+      const data = row.get({ plain: true });
+      // 保留文件ID（数据库中的 image_file_id 字段）
+      data.imageFileId = data.imageFileId;
       // 添加图片URL用于显示
-      if (productData.imageFile) {
-        productData.imageUrl = `/uploads/${productData.imageFile.fileName}`;
+      if (data.imageFile) {
+        data.imageUrl = `/uploads/${data.imageFile.fileName}`;
       } else {
-        productData.imageUrl = null;
+        data.imageUrl = null;
       }
-      delete productData.imageFile;
-      return productData;
+      delete data.imageFile;
+      return data;
     });
 
     return success(res, {

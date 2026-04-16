@@ -94,7 +94,7 @@
               </el-table>
             </div>
             <div class="tip-text">
-              <el-icon><InfoFilled /></el-icon>
+              <el-icon :size="16"><InfoFilled /></el-icon>
               提示：您可以在顶部导航栏快速切换运营方
             </div>
           </el-card>
@@ -220,7 +220,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { UserFilled, Edit, Refresh } from '@element-plus/icons-vue'
+import { UserFilled, Edit, Refresh, InfoFilled } from '@element-plus/icons-vue'
 import { getMyApplications, getCurrentPoints, getUserPointTransactions, getMyTenantStatus, resubmitAudit } from '@/api'
 import { updateUserInfo } from '@/api/auth'
 import { useUserStore } from '@/store/user'
