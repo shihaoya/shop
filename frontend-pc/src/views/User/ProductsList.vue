@@ -1,5 +1,5 @@
 <template>
-  <div class="products-list-page">
+  <div class="products-list-page page-container">
     <el-card>
       <template #header>
         <div class="card-header">
@@ -341,13 +341,17 @@ onMounted(() => {
 
 <style scoped>
 .products-list-page {
-  padding: 20px;
+  /* 响应式由 .page-container 处理 */
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: 600;
+  font-size: 18px;
+  color: #0f172a;
+  letter-spacing: -0.3px;
 }
 
 .tenant-info {
@@ -367,25 +371,38 @@ onMounted(() => {
 }
 
 .tenant-info .value {
-  color: #409EFF;
-  font-size: 14px;
-  font-weight: bold;
+  color: #0ea5e9;
+  font-size: 15px;
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
 }
 
 .search-form {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .points {
-  color: #E6A23C;
-  font-weight: bold;
-  font-size: 16px;
+  color: #f59e0b;
+  font-weight: 700;
+  font-size: 17px;
+  text-shadow: 0 1px 2px rgba(245, 158, 11, 0.1);
 }
 
 .points-highlight {
-  color: #E6A23C;
-  font-weight: bold;
-  font-size: 18px;
+  color: #f59e0b;
+  font-weight: 800;
+  font-size: 20px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .description-cell {
@@ -396,9 +413,10 @@ onMounted(() => {
 }
 
 .exchange-info {
-  padding: 15px;
-  background: #f5f7fa;
-  border-radius: 4px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .exchange-info p {

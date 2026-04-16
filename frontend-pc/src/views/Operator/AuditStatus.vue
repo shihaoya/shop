@@ -1,5 +1,5 @@
 <template>
-  <div class="audit-status">
+  <div class="audit-status page-container">
     <el-card class="status-card">
       <template #header>
         <div class="card-header">
@@ -187,16 +187,20 @@ onMounted(() => {
 
 <style scoped>
 .audit-status {
-  max-width: 800px;
+  /* 响应式由 .page-container 处理 */
 }
 
 .status-card {
-  border-radius: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .card-header {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.3px;
 }
 
 .status-content {

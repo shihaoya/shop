@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard">
+  <div class="dashboard page-container">
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6">
         <el-card class="stat-card" shadow="hover">
@@ -183,53 +183,77 @@ onMounted(() => {
 
 <style scoped>
 .dashboard {
-  max-width: 1400px;
+  /* 响应式由 .page-container 处理 */
 }
 
 .stats-row {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .stat-card {
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
 .stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04);
+  border-color: rgba(14, 165, 233, 0.2);
 }
 
 .stat-content {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  padding: 8px 0;
 }
 
 .stat-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-icon::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-card:hover .stat-icon::before {
+  opacity: 1;
 }
 
 .stat-icon.products {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
 }
 
 .stat-icon.online {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
 }
 
 .stat-icon.users {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
 }
 
 .stat-icon.points {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
 }
 
 .stat-info {
@@ -237,80 +261,125 @@ onMounted(() => {
 }
 
 .stat-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: #1a202c;
+  font-size: 36px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   line-height: 1;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  letter-spacing: -0.5px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #718096;
+  color: #64748b;
+  font-weight: 500;
+  letter-spacing: 0.3px;
 }
 
 .content-row {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .recent-card,
 .quick-card {
-  border-radius: 12px;
+  border-radius: 16px;
   height: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  transition: all 0.3s ease;
+}
+
+.recent-card:hover,
+.quick-card:hover {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: 600;
+  font-size: 16px;
+  color: #0f172a;
 }
 
 .quick-actions {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  padding: 8px 0;
 }
 
 .action-item {
-  padding: 20px;
-  background: #f7fafc;
-  border-radius: 12px;
+  padding: 24px 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.action-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.action-item:hover::before {
+  opacity: 1;
 }
 
 .action-item:hover {
-  background: #edf2f7;
-  transform: translateY(-2px);
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  border-color: rgba(14, 165, 233, 0.2);
 }
 
 .action-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 12px;
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+  position: relative;
+  z-index: 1;
 }
 
 .action-icon.products {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
 }
 
 .action-icon.users {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
 }
 
 .action-icon.points {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
 }
 
 .action-text {
   font-size: 14px;
-  color: #4a5568;
-  font-weight: 500;
+  color: #334155;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  position: relative;
+  z-index: 1;
 }
 </style>

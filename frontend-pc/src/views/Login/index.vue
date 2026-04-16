@@ -139,7 +139,7 @@ const handleLogin = async () => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
 }
 
 .login-bg {
@@ -160,7 +160,7 @@ const handleLogin = async () => {
 .shape-1 {
   width: 600px;
   height: 600px;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   top: -200px;
   right: -100px;
   animation-delay: 0s;
@@ -169,7 +169,7 @@ const handleLogin = async () => {
 .shape-2 {
   width: 500px;
   height: 500px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
   bottom: -150px;
   left: -100px;
   animation-delay: -5s;
@@ -178,7 +178,7 @@ const handleLogin = async () => {
 .shape-3 {
   width: 400px;
   height: 400px;
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -235,10 +235,10 @@ const handleLogin = async () => {
   justify-content: center;
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   border-radius: 20px;
   color: white;
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
   animation: pulse 2s infinite;
 }
 
@@ -254,12 +254,13 @@ const handleLogin = async () => {
 .title {
   font-size: 32px;
   font-weight: 700;
-  color: #1a202c;
+  color: #0f172a;
   margin: 0 0 8px 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: -0.5px;
 }
 
 .subtitle {
@@ -280,11 +281,11 @@ const handleLogin = async () => {
 }
 
 :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
 }
 
 :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.25);
 }
 
 .form-options {
@@ -300,15 +301,15 @@ const handleLogin = async () => {
   font-size: 16px;
   font-weight: 600;
   border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   border: none;
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
   transition: all 0.3s ease;
 }
 
 .login-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.5);
 }
 
 .login-btn:active {

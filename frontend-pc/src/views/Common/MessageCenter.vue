@@ -1,5 +1,5 @@
 <template>
-  <div class="message-center">
+  <div class="message-center page-container">
     <el-card>
       <template #header>
         <div class="card-header">
@@ -347,13 +347,17 @@ onMounted(() => {
 
 <style scoped>
 .message-center {
-  padding: 20px;
+  /* 响应式由 .page-container 处理 */
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: 700;
+  font-size: 18px;
+  color: #0f172a;
+  letter-spacing: -0.3px;
 }
 
 .header-actions {
@@ -362,7 +366,11 @@ onMounted(() => {
 }
 
 .filter-form {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .title-cell {

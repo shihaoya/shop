@@ -276,21 +276,25 @@ onMounted(() => {
 }
 
 .sidebar {
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-  transition: width 0.3s ease;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: hidden;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
 }
 
 .logo {
-  height: 60px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   color: white;
-  font-weight: 600;
-  font-size: 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
 }
 
 .logo-text {
@@ -303,18 +307,24 @@ onMounted(() => {
 }
 
 :deep(.el-menu-item) {
-  color: rgba(255, 255, 255, 0.8);
-  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 4px 8px;
+  border-radius: 8px;
+  font-weight: 500;
 }
 
-:deep(.el-menu-item:hover),
-:deep(.el-menu-item.is-active) {
-  background: rgba(255, 255, 255, 0.15) !important;
+:deep(.el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.08) !important;
   color: white;
+  transform: translateX(4px);
 }
 
 :deep(.el-menu-item.is-active) {
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.2) 0%, rgba(56, 189, 248, 0.05) 100%) !important;
+  color: #38bdf8;
   position: relative;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
 }
 
 :deep(.el-menu-item.is-active::before) {
@@ -323,20 +333,23 @@ onMounted(() => {
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 4px;
+  width: 3px;
   height: 60%;
-  background: white;
+  background: linear-gradient(180deg, #38bdf8 0%, #06b6d4 100%);
   border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 0 32px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03);
   z-index: 10;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .header-left {
@@ -352,7 +365,8 @@ onMounted(() => {
 }
 
 .collapse-btn:hover {
-  color: #667eea;
+  color: #0ea5e9;
+  transform: scale(1.1);
 }
 
 .header-right {
@@ -371,7 +385,8 @@ onMounted(() => {
 }
 
 .message-icon:hover {
-  color: #667eea;
+  color: #0ea5e9;
+  transform: scale(1.15);
 }
 
 .user-info {
@@ -385,13 +400,21 @@ onMounted(() => {
 }
 
 .user-info:hover {
-  background: #f5f7fa;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.1);
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
   color: white;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+  transition: all 0.3s ease;
+}
+
+.user-info:hover .user-avatar {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
 }
 
 .username {
@@ -400,9 +423,10 @@ onMounted(() => {
 }
 
 .main-content {
-  padding: 24px;
-  background: #f0f2f5;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
   overflow-y: auto;
+  min-height: calc(100vh - 72px);
 }
 
 /* 路由过渡动画 */

@@ -1,5 +1,5 @@
 <template>
-  <div class="product-manage-page">
+  <div class="product-manage-page page-container">
     <el-card>
       <template #header>
         <div class="card-header">
@@ -177,19 +177,21 @@ onMounted(() => {
 
 <style scoped>
 .product-manage-page {
-  max-width: 1400px;
+  /* 响应式由 .page-container 处理 */
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: 18px;
+  color: #0f172a;
+  letter-spacing: -0.3px;
 }
 
 .pagination {
-  margin-top: 20px;
+  margin-top: 24px;
   display: flex;
   justify-content: flex-end;
 }

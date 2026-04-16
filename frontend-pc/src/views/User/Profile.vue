@@ -1,5 +1,5 @@
 <template>
-  <div class="profile-page">
+  <div class="profile-page page-container">
     <el-row :gutter="20">
       <!-- 左侧：用户基本信息 -->
       <el-col :span="8">
@@ -476,7 +476,7 @@ onMounted(() => {
 
 <style scoped>
 .profile-page {
-  padding: 20px;
+  /* 响应式由 .page-container 处理 */
 }
 
 .user-info {

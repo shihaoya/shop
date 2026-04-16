@@ -57,7 +57,6 @@ const PointTransaction = sequelize.define('PointTransaction', {
   tableName: 'point_transactions',
   timestamps: true,
   underscored: true,
-  createdAt: 'created_at',
   updatedAt: false,
   indexes: [
     { fields: ['user_id', 'tenant_id'] },

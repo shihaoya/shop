@@ -502,7 +502,7 @@ exports.getPointTransactions = async (req, res) => {
 
     const { count, rows } = await PointTransaction.findAndCountAll({
       where,
-      order: [['created_at', 'DESC']],
+      order: [['createdAt', 'DESC']],
       limit: parseInt(pageSize),
       offset: offset
     });

@@ -102,6 +102,12 @@ const routes = [
         meta: { title: '积分管理', icon: 'UserFilled' }
       },
       {
+        path: 'orders',
+        name: 'OperatorOrderManage',
+        component: () => import('@/views/Operator/OrderManage.vue'),
+        meta: { title: '订单管理', icon: 'DocumentChecked' }
+      },
+      {
         path: 'profile',
         name: 'OperatorProfile',
         component: () => import('@/views/User/Profile.vue'),
