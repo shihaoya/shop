@@ -143,6 +143,9 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Bell, CircleCheck } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import { useMessageStore } from '@/store/message'
+
+const messageStore = useMessageStore()
 
 const loading = ref(false)
 const messageList = ref([])
@@ -211,6 +214,8 @@ const handleMarkRead = async (row) => {
     if (res.code === 200) {
       ElMessage.success('标记成功')
       row.isRead = 1
+      // 刷新未读数量
+      messageStore.fetchUnreadCount()
     }
   } catch (error) {
     ElMessage.error('操作失败')
@@ -230,6 +235,8 @@ const handleMarkAllRead = async () => {
     if (res.code === 200) {
       ElMessage.success(`成功标记${res.data.count}条消息为已读`)
       fetchMessages()
+      // 刷新未读数量
+      messageStore.fetchUnreadCount()
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -251,6 +258,8 @@ const handleDelete = async (row) => {
     if (res.code === 200) {
       ElMessage.success('删除成功')
       fetchMessages()
+      // 刷新未读数量
+      messageStore.fetchUnreadCount()
     }
   } catch (error) {
     if (error !== 'cancel') {

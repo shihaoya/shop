@@ -115,10 +115,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { useTenantStore } from '@/store/tenant'
+import { useMessageStore } from '@/store/message'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import ChangePassword from '@/components/Common/ChangePassword.vue'
 import { getMyApplications } from '@/api'
-import { getUnreadCount } from '@/api/message'
 import { routes } from '@/router'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { Fold, Expand, Bell, ArrowDown, Lock, SwitchButton } from '@element-plus/icons-vue'
@@ -127,12 +127,15 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const tenantStore = useTenantStore()
+const messageStore = useMessageStore()
 
 const isCollapse = ref(false)
 const showChangePassword = ref(false)
 const selectedTenantId = ref(null)
 const approvedTenants = ref([])
-const unreadCount = ref(0)
+
+// 使用 message store 中的未读数量
+const unreadCount = computed(() => messageStore.unreadCount)
 
 const activeMenu = computed(() => route.path)
 
@@ -242,14 +245,7 @@ const handlePasswordSuccess = () => {
 
 // 获取未读消息数量
 const fetchUnreadCount = async () => {
-  try {
-    const res = await getUnreadCount()
-    if (res.code === 200) {
-      unreadCount.value = res.data.unreadCount
-    }
-  } catch (error) {
-    console.error('获取未读消息数量失败:', error)
-  }
+  await messageStore.fetchUnreadCount()
 }
 
 // 跳转到消息中心
