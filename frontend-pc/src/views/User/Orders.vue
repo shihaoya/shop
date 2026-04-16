@@ -4,14 +4,19 @@
       <template #header>
         <div class="card-header">
           <span>我的订单</span>
-          <el-select v-model="statusFilter" placeholder="订单状态" clearable @change="handleFilterChange" style="width: 150px">
-            <el-option label="全部" value="" />
+        </div>
+      </template>
+
+      <!-- 查询条件 -->
+      <el-form :inline="true" class="search-form" style="margin-bottom: 20px;">
+        <el-form-item label="订单状态">
+          <el-select v-model="statusFilter" placeholder="全部状态" clearable @change="handleFilterChange" style="width: 150px">
             <el-option label="待处理" value="pending" />
             <el-option label="已完成" value="completed" />
             <el-option label="已取消" value="cancelled" />
           </el-select>
-        </div>
-      </template>
+        </el-form-item>
+      </el-form>
 
       <el-table v-loading="loading" :data="orderList" stripe>
         <el-table-column prop="orderNo" label="订单号" width="200" />
@@ -55,11 +60,12 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="handleViewDetail(row.id)">
+            <el-button link type="primary" size="small" @click="handleViewDetail(row.id)">
               详情
             </el-button>
             <el-button 
               v-if="row.status === 'pending'" 
+              link
               type="danger" 
               size="small" 
               @click="handleCancel(row.id)"
@@ -83,7 +89,7 @@
     </el-card>
 
     <!-- 订单详情对话框 -->
-    <el-dialog v-model="detailVisible" title="订单详情" width="600px">
+    <el-dialog v-model="detailVisible" title="订单详情" width="600px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-descriptions v-if="orderDetail" :column="1" border>
         <el-descriptions-item label="订单号">{{ orderDetail.orderNo }}</el-descriptions-item>
         <el-descriptions-item label="运营方">{{ orderDetail.tenant?.name }}</el-descriptions-item>

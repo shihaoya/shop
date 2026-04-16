@@ -64,7 +64,7 @@
           <template #header>
             <div class="card-header">
               <span>最近商品</span>
-              <el-button type="primary" text @click="$router.push('/operator/products')">
+              <el-button type="primary" text @click="$router.push('/operator/products')" style="color: white;">
                 查看全部
                 <el-icon><ArrowRight /></el-icon>
               </el-button>

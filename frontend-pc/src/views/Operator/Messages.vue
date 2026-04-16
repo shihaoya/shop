@@ -114,7 +114,7 @@
     </el-card>
 
     <!-- 消息详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="消息详情" width="600px">
+    <el-dialog v-model="detailDialogVisible" title="消息详情" width="600px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-descriptions :column="1" border v-if="currentMessage">
         <el-descriptions-item label="消息类型">
           <el-tag :type="getMessageTypeColor(currentMessage.type)">

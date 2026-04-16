@@ -76,6 +76,7 @@
         <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
             <el-button 
+              link
               type="primary" 
               size="small" 
               @click="handleExchange(row)"
@@ -102,7 +103,7 @@
     </el-card>
 
     <!-- 兑换确认对话框 -->
-    <el-dialog v-model="exchangeVisible" title="确认兑换" width="500px">
+    <el-dialog v-model="exchangeVisible" title="确认兑换" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
       <div v-if="selectedProduct" class="exchange-info">
         <p><strong>商品名称：</strong>{{ selectedProduct.name }}</p>
         <p><strong>所需积分：</strong><span class="points-highlight">{{ selectedProduct.pointsRequired }}</span></p>
@@ -197,7 +198,9 @@ const myPoints = computed(() => userStore.userInfo?.pointsBalance || 0)
 // 获取商品列表
 const fetchData = async () => {
   if (!currentTenantId.value) {
-    ElMessage.warning('请先选择运营方')
+    ElMessage.warning('您还未加入任何运营方，请先在“我的运营方”页面申请加入')
+    productList.value = []
+    pagination.total = 0
     return
   }
 
@@ -218,7 +221,10 @@ const fetchData = async () => {
     // 刷新用户信息以获取最新积分
     await userStore.getUserInfo({ tenantId: currentTenantId.value })
   } catch (error) {
-    ElMessage.error('获取商品列表失败')
+    // 只在有权限错误时才显示错误
+    if (error.response?.status !== 403) {
+      ElMessage.error('获取商品列表失败')
+    }
   } finally {
     loading.value = false
   }

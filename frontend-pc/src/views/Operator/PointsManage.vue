@@ -19,10 +19,10 @@
       </el-form>
 
       <!-- 用户积分列表 -->
-      <el-table :data="tableData" v-loading="loading" border stripe>
+      <el-table :data="tableData" v-loading="loading" border stripe style="width: 100%">
         <el-table-column prop="id" label="用户ID" width="100" />
         <el-table-column prop="username" label="用户名" width="150" />
-        <el-table-column prop="nickname" label="昵称" width="150" />
+        <el-table-column prop="nickname" label="昵称" min-width="150" />
         <el-table-column prop="pointsBalance" label="积分余额" width="120">
           <template #default="{ row }">
             <el-tag type="success">{{ row.pointsBalance }}</el-tag>
@@ -52,7 +52,7 @@
     </el-card>
 
     <!-- 增加积分对话框 -->
-    <el-dialog v-model="addDialogVisible" title="增加积分" width="500px">
+    <el-dialog v-model="addDialogVisible" title="增加积分" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="addFormRef" :model="addForm" :rules="addRules" label-width="100px">
         <el-form-item label="用户名">
           <el-input v-model="addForm.username" disabled />
@@ -74,7 +74,7 @@
     </el-dialog>
 
     <!-- 减少积分对话框 -->
-    <el-dialog v-model="subtractDialogVisible" title="减少积分" width="500px">
+    <el-dialog v-model="subtractDialogVisible" title="减少积分" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="subtractFormRef" :model="subtractForm" :rules="subtractRules" label-width="100px">
         <el-form-item label="用户名">
           <el-input v-model="subtractForm.username" disabled />
@@ -96,7 +96,7 @@
     </el-dialog>
 
     <!-- 修改积分对话框 -->
-    <el-dialog v-model="modifyDialogVisible" title="修改积分" width="500px">
+    <el-dialog v-model="modifyDialogVisible" title="修改积分" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="modifyFormRef" :model="modifyForm" :rules="modifyRules" label-width="100px">
         <el-form-item label="用户名">
           <el-input v-model="modifyForm.username" disabled />
@@ -118,7 +118,7 @@
     </el-dialog>
 
     <!-- 积分流水对话框 -->
-    <el-dialog v-model="transactionsVisible" title="积分流水" width="800px">
+    <el-dialog v-model="transactionsVisible" title="积分流水" width="800px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-table :data="transactionsData" v-loading="transactionsLoading" border stripe max-height="400">
         <el-table-column prop="transactionType" label="类型" width="100">
           <template #default="{ row }">

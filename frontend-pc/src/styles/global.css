@@ -88,19 +88,19 @@ html, body {
   border-color: rgba(14, 165, 233, 0.2) !important;
 }
 
-.el-button--primary {
+.el-button--primary:not(.is-link) {
   background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%) !important;
   border: none !important;
   box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3) !important;
   transition: all var(--transition-base) !important;
 }
 
-.el-button--primary:hover {
+.el-button--primary:not(.is-link):hover {
   transform: translateY(-2px) !important;
   box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4) !important;
 }
 
-.el-button--primary:active {
+.el-button--primary:not(.is-link):active {
   transform: translateY(0) !important;
 }
 

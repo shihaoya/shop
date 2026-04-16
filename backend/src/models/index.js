@@ -24,6 +24,10 @@ UserTenantRelation.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 Tenant.hasMany(Product, { foreignKey: 'tenantId', as: 'products' });
 Product.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 
+// 商品图片关联
+Product.belongsTo(Upload, { foreignKey: 'imageUrl', as: 'imageFile' });
+Upload.hasMany(Product, { foreignKey: 'imageUrl', as: 'products' });
+
 // 积分流水关联
 User.hasMany(PointTransaction, { foreignKey: 'userId', as: 'pointTransactions' });
 PointTransaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });

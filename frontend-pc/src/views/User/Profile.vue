@@ -5,12 +5,12 @@
       <el-col :span="8">
         <el-card>
           <div class="user-info">
-            <el-avatar :size="80" icon="UserFilled" />
+            <el-avatar :size="80" :src="userInfo.avatar" icon="UserFilled" />
             <h2>{{ userInfo.nickname || userInfo.username }}</h2>
             <p><strong>用户名：</strong>{{ userInfo.username }}</p>
             <p><strong>昵称：</strong>{{ userInfo.nickname || '未设置' }}</p>
             <p><strong>角色：</strong>{{ getRoleText(userInfo.role) }}</p>
-            <p><strong>注册时间：</strong>{{ formatTime(userInfo.createdAt) }}</p>
+            <p v-if="userInfo.createdAt"><strong>注册时间：</strong>{{ formatTime(userInfo.createdAt) }}</p>
             <el-button type="primary" size="small" style="margin-top: 15px" @click="handleEditClick">
               <el-icon><Edit /></el-icon>
               编辑信息
@@ -75,14 +75,28 @@
             <template #header>
               <span>已加入的运营方</span>
             </template>
-            <el-select v-model="selectedTenant" placeholder="请选择运营方" style="width: 100%" @change="handleTenantChange">
-              <el-option
-                v-for="item in approvedTenants"
-                :key="item.tenant.id"
-                :label="item.tenant.name"
-                :value="item.tenant.id"
-              />
-            </el-select>
+            <div class="tenant-list">
+              <el-empty v-if="approvedTenants.length === 0" description="您还未加入任何运营方" />
+              <el-table v-else :data="approvedTenants" stripe>
+                <el-table-column prop="tenant.name" label="运营方名称" />
+                <el-table-column prop="status" label="状态" width="100">
+                  <template #default="{ row }">
+                    <el-tag type="success">已通过</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="120">
+                  <template #default="{ row }">
+                    <el-button link type="primary" size="small" @click="switchTenant(row.tenant.id)">
+                      切换
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <div class="tip-text">
+              <el-icon><InfoFilled /></el-icon>
+              提示：您可以在顶部导航栏快速切换运营方
+            </div>
           </el-card>
         </template>
 
@@ -134,7 +148,7 @@
     </el-row>
 
     <!-- 编辑信息对话框 -->
-    <el-dialog v-model="showEditDialog" title="编辑个人信息" width="500px">
+    <el-dialog v-model="showEditDialog" title="编辑个人信息" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="80px">
         <el-form-item label="用户名">
           <el-input v-model="userInfo.username" disabled />
@@ -152,7 +166,7 @@
     </el-dialog>
 
     <!-- 重新提交审核对话框 -->
-    <el-dialog v-model="showResubmitDialog" title="重新提交审核" width="600px">
+    <el-dialog v-model="showResubmitDialog" title="重新提交审核" width="600px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="resubmitFormRef" :model="resubmitForm" :rules="resubmitRules" label-width="100px">
         <el-form-item label="申请描述" prop="description">
           <el-input 
@@ -174,7 +188,7 @@
     </el-dialog>
 
     <!-- 积分流水对话框 -->
-    <el-dialog v-model="transactionsVisible" title="积分流水" width="800px">
+    <el-dialog v-model="transactionsVisible" title="积分流水" width="800px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-table :data="transactionsData" v-loading="transactionsLoading" border stripe max-height="400">
         <el-table-column prop="transactionType" label="类型" width="100">
           <template #default="{ row }">
@@ -313,6 +327,17 @@ const loadCurrentPoints = async () => {
 }
 
 // 切换运营方
+const switchTenant = async (tenantId) => {
+  try {
+    await tenantStore.switchTenant(tenantId)
+    ElMessage.success('切换运营方成功')
+    // 重新加载积分信息
+    await loadCurrentPoints()
+  } catch (error) {
+    ElMessage.error('切换失败')
+  }
+}
+
 const handleTenantChange = async () => {
   await loadCurrentPoints()
 }
@@ -530,5 +555,25 @@ onMounted(() => {
   font-weight: bold;
   font-size: 24px;
   margin-left: 10px;
+}
+
+.tenant-list {
+  min-height: 100px;
+}
+
+.tip-text {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f4f4f5;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #909399;
+  font-size: 13px;
+}
+
+.tip-text .el-icon {
+  color: #409eff;
 }
 </style>

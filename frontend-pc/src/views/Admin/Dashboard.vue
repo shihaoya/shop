@@ -64,7 +64,7 @@
           <template #header>
             <div class="card-header">
               <span>最近待审核申请</span>
-              <el-button type="primary" text @click="$router.push('/admin/audit')">
+              <el-button type="primary" text @click="$router.push('/admin/audit')" style="color: white;">
                 查看全部
                 <el-icon><ArrowRight /></el-icon>
               </el-button>
@@ -81,10 +81,10 @@
             </el-table-column>
             <el-table-column label="操作" width="150" fixed="right">
               <template #default="{ row }">
-                <el-button type="success" size="small" @click="handleApprove(row.id)">
+                <el-button link type="success" size="small" @click="handleApprove(row.id)">
                   通过
                 </el-button>
-                <el-button type="danger" size="small" @click="handleReject(row.id)">
+                <el-button link type="danger" size="small" @click="handleReject(row.id)">
                   拒绝
                 </el-button>
               </template>

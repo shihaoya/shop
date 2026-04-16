@@ -270,18 +270,18 @@ exports.getPointTransactions = async (req, res) => {
     }
 
     if (startDate || endDate) {
-      where.createdAt = {};
+      where.created_at = {};
       if (startDate) {
-        where.createdAt[Op.gte] = new Date(startDate);
+        where.created_at[Op.gte] = new Date(startDate);
       }
       if (endDate) {
-        where.createdAt[Op.lte] = new Date(endDate);
+        where.created_at[Op.lte] = new Date(endDate);
       }
     }
 
     const { count, rows } = await PointTransaction.findAndCountAll({
       where,
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit: parseInt(pageSize),
       offset: offset
     });

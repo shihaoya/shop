@@ -49,7 +49,7 @@
       
       <el-table :data="userList" v-loading="loading" style="width: 100%">
         <el-table-column prop="username" label="用户名" width="150" />
-        <el-table-column prop="nickname" label="昵称" width="150" />
+        <el-table-column prop="nickname" label="昵称" min-width="150" />
         <el-table-column prop="role" label="角色" width="120">
           <template #default="{ row }">
             <el-tag :type="getRoleType(row.role)">
@@ -79,14 +79,15 @@
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="handleEdit(row)">
+            <el-button link type="primary" size="small" @click="handleEdit(row)">
               编辑
             </el-button>
-            <el-button type="warning" size="small" @click="handleResetPassword(row.id)">
+            <el-button link type="warning" size="small" @click="handleResetPassword(row.id)">
               重置密码
             </el-button>
             <el-button 
               v-if="row.role !== 'admin'"
+              link
               type="danger" 
               size="small" 
               @click="handleDelete(row)"
@@ -111,7 +112,7 @@
     </el-card>
 
     <!-- 编辑用户对话框 -->
-    <el-dialog v-model="showEditDialog" title="编辑用户信息" width="700px">
+    <el-dialog v-model="showEditDialog" title="编辑用户信息" width="700px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="100px">
         <el-form-item label="用户名">
           <el-input v-model="editForm.username" disabled />
@@ -160,7 +161,7 @@
     </el-dialog>
 
     <!-- 创建用户对话框 -->
-    <el-dialog v-model="showCreateDialog" title="创建新用户" width="600px">
+    <el-dialog v-model="showCreateDialog" title="创建新用户" width="600px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="createForm.username" placeholder="请输入用户名" />

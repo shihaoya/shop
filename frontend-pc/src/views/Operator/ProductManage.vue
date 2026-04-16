@@ -4,20 +4,13 @@
       <template #header>
         <div class="card-header">
           <span>商品管理</span>
-          <el-button type="primary" @click="handleCreate">
-            <el-icon><Plus /></el-icon>
-            新增商品
-          </el-button>
         </div>
       </template>
 
       <!-- 搜索栏 -->
       <el-form :inline="true" :model="searchForm" class="search-form">
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择" clearable style="width: 150px">
-            <el-option label="上架" value="on_shelf" />
-            <el-option label="下架" value="off_shelf" />
-          </el-select>
+          <el-select v-model="searchForm.status" placeholder="请选择" clearable style="width: 150px" />
         </el-form-item>
         <el-form-item label="分类">
           <el-input v-model="searchForm.category" placeholder="请输入分类" clearable style="width: 150px" />
@@ -30,6 +23,14 @@
           <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
+
+      <!-- 操作按钮 -->
+      <div style="margin-bottom: 20px;">
+        <el-button type="primary" @click="handleCreate">
+          <el-icon><Plus /></el-icon>
+          新增商品
+        </el-button>
+      </div>
 
       <!-- 商品列表 -->
       <el-table :data="tableData" v-loading="loading" border stripe>
@@ -97,6 +98,8 @@
       v-model="dialogVisible"
       :title="dialogTitle"
       width="600px"
+      :close-on-click-modal="true"
+      :close-on-press-escape="false"
       @close="handleDialogClose"
     >
       <el-form
@@ -156,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { getProducts, createProduct, updateProduct, updateProductStatus, deleteProduct } from '@/api'
@@ -192,7 +195,7 @@ const formData = reactive({
   pointsRequired: 0,
   stock: 0,
   description: '',
-  imageUrl: ''
+  imageFileId: null // 图片文件ID
 })
 
 const formRules = {
@@ -258,7 +261,8 @@ const handleCreate = () => {
     pointsRequired: 0,
     stock: 0,
     description: '',
-    imageUrl: ''
+    imageFileId: null,
+    imageUrl: '' // 清空图片URL
   })
   dialogVisible.value = true
 }
@@ -273,7 +277,8 @@ const handleEdit = (row) => {
     pointsRequired: row.pointsRequired,
     stock: row.stock,
     description: row.description || '',
-    imageUrl: row.imageUrl || ''
+    imageFileId: row.imageFileId || null,
+    imageUrl: row.imageUrl || '' // 用于显示图片
   })
   dialogVisible.value = true
 }
@@ -288,6 +293,9 @@ const handleSubmit = async () => {
     submitLoading.value = true
     try {
       const data = { ...formData }
+      // 删除 imageUrl 字段，只提交 imageFileId
+      delete data.imageUrl
+      
       if (formData.id) {
         await updateProduct(formData.id, data)
         ElMessage.success('更新成功')
@@ -308,6 +316,9 @@ const handleSubmit = async () => {
 // 关闭对话框
 const handleDialogClose = () => {
   formRef.value?.resetFields()
+  // 清空图片相关数据
+  formData.imageFileId = null
+  formData.imageUrl = ''
 }
 
 // 切换上下架状态
@@ -380,7 +391,12 @@ const beforeImageUpload = (file) => {
 // 图片上传成功
 const handleImageSuccess = (response) => {
   if (response.code === 200) {
+    // 保存文件ID和图片URL
+    formData.imageFileId = response.data.id
     formData.imageUrl = response.data.url
+    nextTick(() => {
+      console.log('图片文件ID已设置:', formData.imageFileId)
+    })
     ElMessage.success('图片上传成功')
   } else {
     ElMessage.error(response.message || '上传失败')
@@ -424,6 +440,12 @@ onMounted(() => {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* 搜索表单中的选择框圆角 */
+.search-form :deep(.el-select .el-input__wrapper),
+.search-form :deep(.el-input__wrapper) {
+  border-radius: 8px;
 }
 
 .no-image {

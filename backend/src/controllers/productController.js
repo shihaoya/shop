@@ -1,8 +1,9 @@
-const { Product, Tenant, UserTenantRelation } = require('../models');
+const { Product, Tenant, UserTenantRelation, Upload } = require('../models');
 const { Op } = require('sequelize');
 const { logger } = require('../middlewares/logger');
 const { success, error } = require('../utils/response');
 const config = require('../config');
+const path = require('path');
 
 /**
  * 辅助函数：获取运营方的租户ID
@@ -27,13 +28,6 @@ exports.createProduct = async (req, res) => {
     const userId = req.user.id;
     const { name, description, pointsRequired, stock, category } = req.body;
     
-    // 获取上传的图片文件
-    let imageUrl = null;
-    if (req.file) {
-      // 生成图片访问URL（相对于uploads目录）
-      imageUrl = `/uploads/${req.file.filename}`;
-    }
-
     // 验证必填字段
     if (!name || !pointsRequired || stock === undefined) {
       return error(res, '商品名称、所需积分和库存为必填项', 400);
@@ -50,18 +44,49 @@ exports.createProduct = async (req, res) => {
     // 获取租户ID
     const tenantId = await getOperatorTenantId(userId);
 
-    // 创建商品
+    // 创建商品（先不设置图片）
     const product = await Product.create({
       tenantId,
       name,
       description: description || null,
-      imageUrl: imageUrl || null,
+      imageUrl: null, // 文件ID，稍后更新
       pointsRequired,
       stock,
       category: category || null,
       status: 'off_shelf', // 默认下架
       sortOrder: 0
     });
+
+    // 如果有上传的图片，记录到 uploads 表并更新商品
+    let imageFileId = null;
+    
+    if (req.file) {
+      // 通过文件上传
+      const filePath = path.resolve('uploads', req.file.filename);
+      
+      // 记录文件上传信息
+      const uploadRecord = await Upload.create({
+        fileName: req.file.filename,
+        originalName: req.file.originalname,
+        filePath: filePath,
+        fileSize: req.file.size,
+        fileType: req.file.mimetype,
+        module: 'product',
+        relatedId: product.id,
+        relatedType: 'product'
+      });
+      
+      imageFileId = uploadRecord.id;
+      logger.info(`运营方 ${userId} 上传商品图片，文件ID: ${imageFileId}`);
+    } else if (req.body.imageFileId) {
+      // 通过文件ID提交（先上传后提交的情况）
+      imageFileId = parseInt(req.body.imageFileId);
+    }
+    
+    // 更新商品的文件ID
+    if (imageFileId) {
+      await product.update({ imageUrl: imageFileId });
+    }
 
     logger.info(`运营方 ${userId} 创建商品: ${product.id}`);
 
@@ -104,13 +129,36 @@ exports.getProducts = async (req, res) => {
 
     const { count, rows } = await Product.findAndCountAll({
       where,
+      include: [
+        {
+          model: Upload,
+          as: 'imageFile',
+          attributes: ['id', 'fileName'],
+          required: false
+        }
+      ],
       order: [['sortOrder', 'DESC'], ['createdAt', 'DESC']],
       limit: parseInt(pageSize),
       offset: offset
     });
 
+    // 处理数据，添加图片URL
+    const list = rows.map(row => {
+      const productData = row.toJSON();
+      // 保留文件ID
+      productData.imageFileId = productData.imageUrl;
+      // 添加图片URL用于显示
+      if (productData.imageFile) {
+        productData.imageUrl = `/uploads/${productData.imageFile.fileName}`;
+      } else {
+        productData.imageUrl = null;
+      }
+      delete productData.imageFile;
+      return productData;
+    });
+
     return success(res, {
-      list: rows,
+      list,
       total: count,
       page: parseInt(page),
       pageSize: parseInt(pageSize)
@@ -155,7 +203,7 @@ exports.updateProduct = async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const { name, description, imageUrl, pointsRequired, stock, category } = req.body;
+    const { name, description, pointsRequired, stock, category } = req.body;
 
     const tenantId = await getOperatorTenantId(userId);
 
@@ -175,15 +223,39 @@ exports.updateProduct = async (req, res) => {
       return error(res, '库存不能为负数', 400);
     }
 
-    // 更新商品
-    await product.update({
+    // 准备更新数据
+    const updateData = {
       name: name !== undefined ? name : product.name,
       description: description !== undefined ? description : product.description,
-      imageUrl: imageUrl !== undefined ? imageUrl : product.imageUrl,
       pointsRequired: pointsRequired !== undefined ? pointsRequired : product.pointsRequired,
       stock: stock !== undefined ? stock : product.stock,
-      category: category !== undefined ? category : product.category
-    });
+      category: category !== undefined ? category : product.category,
+      imageUrl: req.body.imageFileId !== undefined ? parseInt(req.body.imageFileId) : product.imageUrl // 支持通过文件ID更新图片
+    };
+
+    // 如果有上传新图片（通过文件上传）
+    if (req.file) {
+      const filePath = path.resolve('uploads', req.file.filename);
+      
+      // 记录新的文件上传信息
+      const uploadRecord = await Upload.create({
+        fileName: req.file.filename,
+        originalName: req.file.originalname,
+        filePath: filePath,
+        fileSize: req.file.size,
+        fileType: req.file.mimetype,
+        module: 'product',
+        relatedId: product.id,
+        relatedType: 'product'
+      });
+      
+      updateData.imageUrl = uploadRecord.id;
+      
+      logger.info(`运营方 ${userId} 更新商品图片，文件ID: ${uploadRecord.id}`);
+    }
+
+    // 更新商品
+    await product.update(updateData);
 
     logger.info(`运营方 ${userId} 更新商品: ${id}`);
 

@@ -1,4 +1,4 @@
-const { Message, User } = require('../models');
+const { Message, User, Tenant } = require('../models');
 const MessageService = require('../services/messageService');
 const { Op } = require('sequelize');
 const { logger } = require('../middlewares/logger');
@@ -29,7 +29,7 @@ exports.getMessages = async (req, res) => {
 
     const { count, rows } = await Message.findAndCountAll({
       where,
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit: parseInt(pageSize),
       offset: offset
     });
@@ -172,7 +172,6 @@ exports.getOperatorMessages = async (req, res) => {
     const offset = (page - 1) * pageSize;
 
     // 获取运营方的租户ID
-    const Tenant = require('./Tenant');
     const tenant = await Tenant.findOne({
       where: { userId, isDeleted: 0 }
     });

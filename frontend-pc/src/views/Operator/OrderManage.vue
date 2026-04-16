@@ -69,6 +69,7 @@
           <template #default="{ row }">
             <el-button 
               v-if="row.status === 'pending'"
+              link
               type="success" 
               size="small"
               @click="handleComplete(row)"
@@ -77,6 +78,7 @@
             </el-button>
             <el-button 
               v-if="row.status === 'pending'"
+              link
               type="danger" 
               size="small"
               @click="handleCancel(row)"
@@ -84,6 +86,7 @@
               取消
             </el-button>
             <el-button 
+              link
               type="primary" 
               size="small"
               @click="handleViewDetail(row)"
@@ -108,7 +111,7 @@
     </el-card>
 
     <!-- 订单详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="订单详情" width="600px">
+    <el-dialog v-model="detailDialogVisible" title="订单详情" width="600px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-descriptions :column="2" border v-if="currentOrder">
         <el-descriptions-item label="订单号">{{ currentOrder.orderNo }}</el-descriptions-item>
         <el-descriptions-item label="订单状态">

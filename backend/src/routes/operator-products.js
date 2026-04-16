@@ -81,7 +81,7 @@ router.get('/trash/list', productController.getTrashProducts);
 
 // 带参数的路由放在最后
 router.get('/:id', productController.getProductById);
-router.put('/:id', productController.updateProduct);
+router.put('/:id', upload.single('image'), productController.updateProduct);
 router.put('/:id/status', productController.updateProductStatus);
 router.delete('/:id', productController.deleteProduct);
 router.post('/:id/restore', productController.restoreProduct);

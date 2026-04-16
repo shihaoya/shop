@@ -37,14 +37,14 @@
         <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
             <template v-if="row.status === 'pending'">
-              <el-button type="success" size="small" @click="handleApprove(row.id)">
+              <el-button link type="success" size="small" @click="handleApprove(row.id)">
                 通过
               </el-button>
-              <el-button type="danger" size="small" @click="handleReject(row.id)">
+              <el-button link type="danger" size="small" @click="handleReject(row.id)">
                 拒绝
               </el-button>
             </template>
-            <el-button type="primary" size="small" @click="handleViewHistory(row)">
+            <el-button link type="primary" size="small" @click="handleViewHistory(row)">
               审核历史
             </el-button>
           </template>
@@ -65,7 +65,7 @@
     </el-card>
 
     <!-- 审核历史对话框 -->
-    <el-dialog v-model="showHistoryDialog" title="审核历史记录" width="900px">
+    <el-dialog v-model="showHistoryDialog" title="审核历史记录" width="900px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-table :data="historyList" v-loading="historyLoading" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="审核结果" width="120">

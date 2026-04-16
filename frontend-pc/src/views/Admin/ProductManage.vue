@@ -57,7 +57,7 @@
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="handleViewDetail(row)">
+            <el-button link type="primary" size="small" @click="handleViewDetail(row)">
               查看详情
             </el-button>
           </template>
@@ -78,7 +78,7 @@
     </el-card>
 
     <!-- 商品详情对话框 -->
-    <el-dialog v-model="showDetailDialog" title="商品详情" width="700px">
+    <el-dialog v-model="showDetailDialog" title="商品详情" width="700px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-descriptions :column="1" border v-if="currentProduct">
         <el-descriptions-item label="商品ID">{{ currentProduct.id }}</el-descriptions-item>
         <el-descriptions-item label="商品名称">{{ currentProduct.name }}</el-descriptions-item>

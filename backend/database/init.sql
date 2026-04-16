@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS `products` (
   `tenant_id` INT UNSIGNED NOT NULL COMMENT '所属租户ID',
   `name` VARCHAR(100) NOT NULL COMMENT '商品名称',
   `description` TEXT DEFAULT NULL COMMENT '商品描述',
-  `image_url` VARCHAR(255) DEFAULT NULL COMMENT '商品图片URL',
+  `image_file_id` INT UNSIGNED DEFAULT NULL COMMENT '商品图片文件ID（关联uploads表）',
   `points_required` INT NOT NULL DEFAULT 0 COMMENT '所需积分',
   `stock` INT NOT NULL DEFAULT 0 COMMENT '库存数量',
   `category` VARCHAR(50) DEFAULT NULL COMMENT '商品分类',

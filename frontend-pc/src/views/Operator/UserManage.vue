@@ -4,18 +4,31 @@
       <template #header>
         <div class="card-header">
           <span>用户管理</span>
-          <div>
-            <el-button type="primary" @click="showAddExistingDialog">
-              <el-icon><Plus /></el-icon>
-              添加已注册用户
-            </el-button>
-            <el-button type="success" @click="showCreateNewDialog">
-              <el-icon><UserFilled /></el-icon>
-              创建新用户
-            </el-button>
-          </div>
         </div>
       </template>
+
+      <!-- 操作按钮 -->
+      <div v-if="isApproved" style="margin-bottom: 20px;">
+        <el-button type="primary" @click="showAddExistingDialog">
+          <el-icon><Plus /></el-icon>
+          添加已注册用户
+        </el-button>
+        <el-button type="success" @click="showCreateNewDialog">
+          <el-icon><UserFilled /></el-icon>
+          创建新用户
+        </el-button>
+      </div>
+      <el-alert
+        v-else
+        type="warning"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 20px;"
+      >
+        <template #title>
+          您的运营方账号尚未通过审核，暂无法添加用户。请先通过审核后再进行操作。
+        </template>
+      </el-alert>
 
       <!-- 搜索栏 -->
       <el-form :inline="true" :model="searchForm" class="search-form">
@@ -23,11 +36,7 @@
           <el-input v-model="searchForm.keyword" placeholder="请输入用户名" clearable style="width: 200px" />
         </el-form-item>
         <el-form-item label="申请状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
-            <el-option label="待审核" value="pending" />
-            <el-option label="已通过" value="approved" />
-            <el-option label="已拒绝" value="rejected" />
-          </el-select>
+          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">搜索</el-button>
@@ -108,7 +117,7 @@
     </el-card>
 
     <!-- 添加已注册用户对话框 -->
-    <el-dialog v-model="addExistingVisible" title="添加已注册用户" width="600px">
+    <el-dialog v-model="addExistingVisible" title="添加已注册用户" width="600px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="addExistingFormRef" :model="addExistingForm" :rules="addExistingRules" label-width="100px">
         <el-form-item label="选择用户" prop="userId">
           <el-select
@@ -143,7 +152,7 @@
     </el-dialog>
 
     <!-- 创建新用户对话框 -->
-    <el-dialog v-model="createNewVisible" title="创建新用户" width="500px">
+    <el-dialog v-model="createNewVisible" title="创建新用户" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="createNewFormRef" :model="createNewForm" :rules="createNewRules" label-width="100px">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="createNewForm.username" placeholder="3-50个字符" />
@@ -165,7 +174,7 @@
     </el-dialog>
 
     <!-- 审核对话框 -->
-    <el-dialog v-model="auditVisible" :title="auditTitle" width="500px">
+    <el-dialog v-model="auditVisible" :title="auditTitle" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
       <div v-if="auditAction === 'reject'" class="audit-form">
         <el-form ref="auditFormRef" :model="auditForm" :rules="auditRules" label-width="100px">
           <el-form-item label="拒绝理由" prop="reason">
@@ -208,7 +217,8 @@ import {
   removeUser,
   approveApplication,
   rejectApplication,
-  getAvailableUsers
+  getAvailableUsers,
+  getMyTenantStatus
 } from '@/api'
 import dayjs from 'dayjs'
 
@@ -235,6 +245,7 @@ const pagination = reactive({
 const tableData = ref([])
 const currentAuditUser = ref(null)
 const auditAction = ref('approve') // approve, reject, revoke
+const isApproved = ref(false) // 运营方审核状态
 
 // 用户搜索相关
 const availableUsers = ref([])
@@ -521,7 +532,17 @@ const formatTime = (time) => {
   return time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 获取运营方审核状态
+  try {
+    const res = await getMyTenantStatus()
+    if (res.code === 200 && res.data) {
+      isApproved.value = res.data.status === 'approved'
+    }
+  } catch (error) {
+    console.error('获取审核状态失败:', error)
+  }
+  
   fetchData()
 })
 </script>
@@ -547,6 +568,12 @@ onMounted(() => {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* 搜索表单中的选择框圆角 */
+.search-form :deep(.el-select .el-input__wrapper),
+.search-form :deep(.el-input__wrapper) {
+  border-radius: 8px;
 }
 
 .audit-form {

@@ -24,9 +24,10 @@ const Product = sequelize.define('Product', {
     comment: '商品描述'
   },
   imageUrl: {
-    type: DataTypes.STRING(255),
+    type: DataTypes.INTEGER.UNSIGNED,
     allowNull: true,
-    comment: '商品图片URL'
+    field: 'image_file_id',
+    comment: '商品图片文件ID（关联uploads表）'
   },
   pointsRequired: {
     type: DataTypes.INTEGER,

@@ -44,6 +44,7 @@
           <template #default="{ row }">
             <el-button 
               v-if="!row.myStatus || row.myStatus === 'rejected'" 
+              link
               type="primary" 
               size="small" 
               @click="handleApply(row)"
@@ -59,6 +60,7 @@
             </el-button>
             <el-button 
               v-else-if="row.myStatus === 'approved'" 
+              link
               type="success" 
               size="small" 
               @click="handleViewProducts(row)"
@@ -84,7 +86,7 @@
     </el-card>
 
     <!-- 申请加入对话框 -->
-    <el-dialog v-model="applyVisible" title="申请加入运营方" width="500px">
+    <el-dialog v-model="applyVisible" title="申请加入运营方" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
       <div v-if="selectedTenant" class="apply-info">
         <p><strong>运营方：</strong>{{ selectedTenant.name }}</p>
       </div>
