@@ -66,7 +66,7 @@ const routes = [
       {
         path: 'messages',
         name: 'AdminMessages',
-        component: () => import('@/views/Common/MessageCenter.vue'),
+        component: () => import('@/views/Admin/Messages.vue'),
         meta: { title: '消息中心', icon: 'Bell' }
       }
     ]
@@ -116,7 +116,7 @@ const routes = [
       {
         path: 'messages',
         name: 'OperatorMessages',
-        component: () => import('@/views/Common/MessageCenter.vue'),
+        component: () => import('@/views/Operator/Messages.vue'),
         meta: { title: '消息中心', icon: 'Bell' }
       }
     ]
@@ -154,7 +154,7 @@ const routes = [
       {
         path: 'messages',
         name: 'UserMessages',
-        component: () => import('@/views/Common/MessageCenter.vue'),
+        component: () => import('@/views/User/Messages.vue'),
         meta: { title: '消息中心', icon: 'Bell' }
       }
     ]

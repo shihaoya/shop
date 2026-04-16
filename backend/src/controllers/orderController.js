@@ -362,6 +362,7 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     // 更新订单状态
+    const oldStatus = order.status;
     order.status = status;
     if (remark) {
       order.remark = remark;
@@ -369,6 +370,9 @@ exports.updateOrderStatus = async (req, res) => {
     await order.save();
 
     logger.info(`运营方 ${operatorId} 更新订单 ${order.orderNo} 状态为 ${status}`);
+
+    // 发送消息通知用户
+    MessageService.notifyUserOrderStatusChange(order, oldStatus, status);
 
     return res.json({
       code: 200,

@@ -9,7 +9,7 @@ const operatorUserRoutes = require('./operator-users');
 const operatorPointRoutes = require('./operator-points');
 const userRoutes = require('./user');
 const orderRoutes = require('./order');
-const messageRoutes = require('./messages');
+const messageRoutes = require('./message');
 
 // API v1 路由
 router.use('/auth', authRoutes);

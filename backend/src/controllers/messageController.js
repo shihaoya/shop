@@ -1,47 +1,205 @@
 const { Message, User } = require('../models');
+const MessageService = require('../services/messageService');
 const { Op } = require('sequelize');
+const { logger } = require('../middlewares/logger');
+const { success, error } = require('../utils/response');
 
 /**
- * 获取当前用户的消息列表
+ * 获取用户消息列表
  */
-exports.getMyMessages = async (req, res) => {
+exports.getMessages = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { 
-      page = 1, 
-      limit = 20, 
-      type, 
-      isRead,
-      priority,
-      keyword 
-    } = req.query;
+    const { page = 1, pageSize = 20, isRead, type } = req.query;
+    const offset = (page - 1) * pageSize;
 
+    // 构建查询条件
     const where = {
       userId,
       isDeleted: 0
     };
 
-    if (type) {
+    if (isRead !== undefined) {
+      where.isRead = parseInt(isRead);
+    }
+
+    if (type && ['system', 'order', 'point', 'audit', 'announcement'].includes(type)) {
       where.type = type;
     }
+
+    const { count, rows } = await Message.findAndCountAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: offset
+    });
+
+    return success(res, {
+      list: rows,
+      total: count,
+      page: parseInt(page),
+      pageSize: parseInt(pageSize)
+    });
+  } catch (err) {
+    logger.error(`获取消息列表失败: ${err.message}`);
+    return error(res, '获取失败', 500);
+  }
+};
+
+/**
+ * 标记消息已读
+ */
+exports.markAsRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const message = await Message.findOne({
+      where: { id, userId, isDeleted: 0 }
+    });
+
+    if (!message) {
+      return error(res, '消息不存在', 404);
+    }
+
+    if (message.isRead === 1) {
+      return success(res, null, '消息已是已读状态');
+    }
+
+    await message.update({
+      isRead: 1,
+      readAt: new Date()
+    });
+
+    return success(res, null, '标记成功');
+  } catch (err) {
+    logger.error(`标记消息已读失败: ${err.message}`);
+    return error(res, '操作失败', 500);
+  }
+};
+
+/**
+ * 批量标记已读
+ */
+exports.markBatchAsRead = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageIds } = req.body;
+
+    let result;
+    
+    if (messageIds && Array.isArray(messageIds) && messageIds.length > 0) {
+      // 标记指定消息
+      result = await Message.update(
+        { isRead: 1, readAt: new Date() },
+        {
+          where: {
+            id: messageIds,
+            userId,
+            isRead: 0,
+            isDeleted: 0
+          }
+        }
+      );
+    } else {
+      // 标记所有未读消息
+      result = await Message.update(
+        { isRead: 1, readAt: new Date() },
+        {
+          where: {
+            userId,
+            isRead: 0,
+            isDeleted: 0
+          }
+        }
+      );
+    }
+
+    return success(res, { count: result[0] }, `成功标记${result[0]}条消息为已读`);
+  } catch (err) {
+    logger.error(`批量标记已读失败: ${err.message}`);
+    return error(res, '操作失败', 500);
+  }
+};
+
+/**
+ * 删除消息（逻辑删除）
+ */
+exports.deleteMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const message = await Message.findOne({
+      where: { id, userId, isDeleted: 0 }
+    });
+
+    if (!message) {
+      return error(res, '消息不存在', 404);
+    }
+
+    await message.update({ isDeleted: 1 });
+
+    return success(res, null, '删除成功');
+  } catch (err) {
+    logger.error(`删除消息失败: ${err.message}`);
+    return error(res, '操作失败', 500);
+  }
+};
+
+/**
+ * 获取未读消息数量
+ */
+exports.getUnreadCount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const count = await MessageService.getUnreadCount(userId);
+
+    return success(res, { count });
+  } catch (err) {
+    logger.error(`获取未读消息数量失败: ${err.message}`);
+    return error(res, '获取失败', 500);
+  }
+};
+
+/**
+ * 运营方获取消息列表
+ */
+exports.getOperatorMessages = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, pageSize = 20, isRead, type } = req.query;
+    const offset = (page - 1) * pageSize;
+
+    // 获取运营方的租户ID
+    const Tenant = require('./Tenant');
+    const tenant = await Tenant.findOne({
+      where: { userId, isDeleted: 0 }
+    });
+
+    if (!tenant) {
+      return success(res, {
+        list: [],
+        total: 0,
+        page: parseInt(page),
+        pageSize: parseInt(pageSize)
+      });
+    }
+
+    // 构建查询条件
+    const where = {
+      tenantId: tenant.id,
+      isDeleted: 0
+    };
 
     if (isRead !== undefined) {
       where.isRead = parseInt(isRead);
     }
 
-    if (priority) {
-      where.priority = priority;
+    if (type && ['system', 'order', 'point', 'audit', 'announcement'].includes(type)) {
+      where.type = type;
     }
 
-    if (keyword) {
-      where[Op.or] = [
-        { title: { [Op.like]: `%${keyword}%` } },
-        { content: { [Op.like]: `%${keyword}%` } }
-      ];
-    }
-
-    const offset = (page - 1) * limit;
-    
     const { count, rows } = await Message.findAndCountAll({
       where,
       include: [
@@ -52,385 +210,19 @@ exports.getMyMessages = async (req, res) => {
         }
       ],
       order: [['createdAt', 'DESC']],
-      limit: parseInt(limit),
-      offset
+      limit: parseInt(pageSize),
+      offset: offset
     });
 
-    return res.json({
-      code: 200,
-      message: '获取成功',
-      data: {
-        list: rows,
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
-      }
+    return success(res, {
+      list: rows,
+      total: count,
+      page: parseInt(page),
+      pageSize: parseInt(pageSize)
     });
-  } catch (error) {
-    console.error('获取消息列表失败:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
-  }
-};
-
-/**
- * 获取未读消息数量
- */
-exports.getUnreadCount = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
-    const count = await Message.count({
-      where: {
-        userId,
-        isRead: 0,
-        isDeleted: 0
-      }
-    });
-
-    return res.json({
-      code: 200,
-      message: '获取成功',
-      data: {
-        unreadCount: count
-      }
-    });
-  } catch (error) {
-    console.error('获取未读数量失败:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
-  }
-};
-
-/**
- * 标记消息为已读
- */
-exports.markAsRead = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { messageId } = req.params;
-
-    const message = await Message.findOne({
-      where: {
-        id: messageId,
-        userId,
-        isDeleted: 0
-      }
-    });
-
-    if (!message) {
-      return res.status(404).json({
-        code: 404,
-        message: '消息不存在'
-      });
-    }
-
-    if (message.isRead === 1) {
-      return res.json({
-        code: 200,
-        message: '消息已是已读状态',
-        data: message
-      });
-    }
-
-    await message.update({
-      isRead: 1,
-      readAt: new Date()
-    });
-
-    return res.json({
-      code: 200,
-      message: '标记成功',
-      data: message
-    });
-  } catch (error) {
-    console.error('标记消息已读失败:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
-  }
-};
-
-/**
- * 批量标记消息为已读
- */
-exports.markAllAsRead = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { type } = req.body;
-
-    const where = {
-      userId,
-      isRead: 0,
-      isDeleted: 0
-    };
-
-    if (type) {
-      where.type = type;
-    }
-
-    const [affectedCount] = await Message.update(
-      {
-        isRead: 1,
-        readAt: new Date()
-      },
-      { where }
-    );
-
-    return res.json({
-      code: 200,
-      message: '标记成功',
-      data: {
-        affectedCount
-      }
-    });
-  } catch (error) {
-    console.error('批量标记消息已读失败:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
-  }
-};
-
-/**
- * 删除消息（软删除）
- */
-exports.deleteMessage = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { messageId } = req.params;
-
-    const message = await Message.findOne({
-      where: {
-        id: messageId,
-        userId,
-        isDeleted: 0
-      }
-    });
-
-    if (!message) {
-      return res.status(404).json({
-        code: 404,
-        message: '消息不存在'
-      });
-    }
-
-    await message.update({
-      isDeleted: 1
-    });
-
-    return res.json({
-      code: 200,
-      message: '删除成功'
-    });
-  } catch (error) {
-    console.error('删除消息失败:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
-  }
-};
-
-/**
- * 批量删除消息
- */
-exports.batchDeleteMessages = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { messageIds } = req.body;
-
-    if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
-      return res.status(400).json({
-        code: 400,
-        message: '请提供要删除的消息ID列表'
-      });
-    }
-
-    const [affectedCount] = await Message.update(
-      { isDeleted: 1 },
-      {
-        where: {
-          id: { [Op.in]: messageIds },
-          userId,
-          isDeleted: 0
-        }
-      }
-    );
-
-    return res.json({
-      code: 200,
-      message: '删除成功',
-      data: {
-        affectedCount
-      }
-    });
-  } catch (error) {
-    console.error('批量删除消息失败:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
-  }
-};
-
-/**
- * 获取消息详情
- */
-exports.getMessageDetail = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { messageId } = req.params;
-
-    const message = await Message.findOne({
-      where: {
-        id: messageId,
-        userId,
-        isDeleted: 0
-      },
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'username', 'nickname']
-        }
-      ]
-    });
-
-    if (!message) {
-      return res.status(404).json({
-        code: 404,
-        message: '消息不存在'
-      });
-    }
-
-    // 如果未读，自动标记为已读
-    if (message.isRead === 0) {
-      await message.update({
-        isRead: 1,
-        readAt: new Date()
-      });
-    }
-
-    return res.json({
-      code: 200,
-      message: '获取成功',
-      data: message
-    });
-  } catch (error) {
-    console.error('获取消息详情失败:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
-  }
-};
-
-/**
- * 发送系统消息（管理员使用）
- */
-exports.sendSystemMessage = async (req, res) => {
-  try {
-    const { userId, title, content, type = 'system', priority = 'normal', expireAt } = req.body;
-
-    if (!userId || !title || !content) {
-      return res.status(400).json({
-        code: 400,
-        message: '缺少必要参数'
-      });
-    }
-
-    // 验证用户是否存在
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({
-        code: 404,
-        message: '用户不存在'
-      });
-    }
-
-    const message = await Message.create({
-      userId,
-      title,
-      content,
-      type,
-      priority,
-      senderId: req.user.id,
-      senderName: req.user.nickname || req.user.username,
-      expireAt: expireAt || null
-    });
-
-    return res.json({
-      code: 200,
-      message: '消息发送成功',
-      data: message
-    });
-  } catch (error) {
-    console.error('发送系统消息失败:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
-  }
-};
-
-/**
- * 广播消息（给所有用户发送）
- */
-exports.broadcastMessage = async (req, res) => {
-  try {
-    const { title, content, type = 'announcement', priority = 'normal', expireAt } = req.body;
-
-    if (!title || !content) {
-      return res.status(400).json({
-        code: 400,
-        message: '缺少必要参数'
-      });
-    }
-
-    // 获取所有用户
-    const users = await User.findAll({
-      where: {
-        status: 1,
-        isDeleted: 0
-      },
-      attributes: ['id']
-    });
-
-    // 批量创建消息
-    const messages = users.map(user => ({
-      userId: user.id,
-      title,
-      content,
-      type,
-      priority,
-      senderId: req.user.id,
-      senderName: req.user.nickname || req.user.username,
-      expireAt: expireAt || null
-    }));
-
-    await Message.bulkCreate(messages);
-
-    return res.json({
-      code: 200,
-      message: `消息已发送给 ${users.length} 个用户`,
-      data: {
-        sentCount: users.length
-      }
-    });
-  } catch (error) {
-    console.error('广播消息失败:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
+  } catch (err) {
+    logger.error(`获取运营方消息列表失败: ${err.message}`);
+    return error(res, '获取失败', 500);
   }
 };
 

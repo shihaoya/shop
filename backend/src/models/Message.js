@@ -1,9 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('./database');
 
-/**
- * 消息通知表
- */
 const Message = sequelize.define('Message', {
   id: {
     type: DataTypes.BIGINT.UNSIGNED,
@@ -35,7 +32,7 @@ const Message = sequelize.define('Message', {
     type: DataTypes.ENUM('system', 'order', 'point', 'audit', 'announcement'),
     allowNull: false,
     defaultValue: 'system',
-    comment: '消息类型：system-系统消息，order-订单消息，point-积分消息，audit-审核消息，announcement-公告'
+    comment: '消息类型'
   },
   relatedId: {
     type: DataTypes.INTEGER.UNSIGNED,
@@ -72,7 +69,7 @@ const Message = sequelize.define('Message', {
     type: DataTypes.ENUM('low', 'normal', 'high', 'urgent'),
     allowNull: false,
     defaultValue: 'normal',
-    comment: '优先级：low-低，normal-普通，high-高，urgent-紧急'
+    comment: '优先级'
   },
   expireAt: {
     type: DataTypes.DATE,
@@ -89,6 +86,8 @@ const Message = sequelize.define('Message', {
   tableName: 'messages',
   timestamps: true,
   underscored: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
     { fields: ['user_id'] },
     { fields: ['tenant_id'] },
