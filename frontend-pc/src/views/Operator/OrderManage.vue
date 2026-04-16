@@ -19,6 +19,7 @@
         <el-form-item>
           <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
+          <el-button type="success" @click="handleExport">导出订单</el-button>
         </el-form-item>
       </el-form>
 
@@ -136,6 +137,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
+import { exportOrders } from '@/api'
 
 const loading = ref(false)
 const orderList = ref([])
@@ -189,6 +191,44 @@ const handleReset = () => {
   searchForm.status = ''
   pagination.page = 1
   fetchOrders()
+}
+
+// 导出订单
+const handleExport = async () => {
+  try {
+    const params = {}
+    
+    if (searchForm.status) {
+      params.status = searchForm.status
+    }
+
+    const res = await exportOrders(params)
+    
+    // 创建 Blob 对象
+    const blob = new Blob([res], { type: 'text/csv;charset=utf-8' })
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    
+    // 生成文件名
+    const date = new Date().toISOString().slice(0, 10)
+    link.download = `订单导出_${date}.csv`
+    
+    // 触发下载
+    document.body.appendChild(link)
+    link.click()
+    
+    // 清理
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    
+    ElMessage.success('订单导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  }
 }
 
 // 查看详情

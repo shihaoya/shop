@@ -353,6 +353,15 @@ export function getOperatorOrders(params) {
   })
 }
 
+export function exportOrders(params) {
+  return request({
+    url: '/operator/orders/export',
+    method: 'get',
+    params,
+    responseType: 'blob' // 重要：指定响应类型为 blob
+  })
+}
+
 export function updateOrderStatus(id, data) {
   return request({
     url: `/operator/orders/${id}/status`,

@@ -321,6 +321,135 @@ exports.getOperatorOrders = async (req, res) => {
 };
 
 /**
+ * 导出订单为CSV文件
+ */
+exports.exportOrders = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { status, startDate, endDate } = req.query;
+
+    // 获取运营方的租户ID
+    const tenant = await Tenant.findOne({
+      where: { userId, isDeleted: 0 }
+    });
+
+    if (!tenant) {
+      return res.status(403).json({
+        code: 403,
+        message: '无权操作'
+      });
+    }
+
+    // 构建查询条件
+    let where = { tenantId: tenant.id, isDeleted: 0 };
+
+    if (status && ['pending', 'completed', 'cancelled'].includes(status)) {
+      where.status = status;
+    }
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt[Op.gte] = new Date(startDate);
+      }
+      if (endDate) {
+        where.createdAt[Op.lte] = new Date(endDate);
+      }
+    }
+
+    // 查询订单（限制最多10000条）
+    const orders = await Order.findAll({
+      where,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['username', 'nickname']
+        },
+        {
+          model: Product,
+          as: 'product',
+          attributes: ['name']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: 10000
+    });
+
+    if (orders.length === 0) {
+      return res.status(404).json({
+        code: 404,
+        message: '没有可导出的订单'
+      });
+    }
+
+    // 生成CSV内容
+    const headers = [
+      '订单号',
+      '用户名',
+      '昵称',
+      '商品名称',
+      '积分单价',
+      '数量',
+      '总积分',
+      '收货人',
+      '联系电话',
+      '收货地址',
+      '订单状态',
+      '备注',
+      '下单时间'
+    ];
+
+    const statusMap = {
+      pending: '待处理',
+      completed: '已完成',
+      cancelled: '已取消'
+    };
+
+    const rows = orders.map(order => {
+      return [
+        order.orderNo,
+        order.user?.username || '',
+        order.user?.nickname || '',
+        order.productName,
+        order.pointsCost,
+        order.quantity,
+        order.totalPoints,
+        order.recipientName || '',
+        order.recipientPhone || '',
+        order.recipientAddress || '',
+        statusMap[order.status] || order.status,
+        order.remark || '',
+        new Date(order.createdAt).toLocaleString('zh-CN')
+      ];
+    });
+
+    // 组合CSV内容
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    // 设置响应头
+    const filename = `订单导出_${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv;charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    
+    // 添加BOM以支持中文
+    res.write('\uFEFF');
+    res.end(csvContent);
+
+    logger.info(`运营方 ${userId} 导出订单 ${orders.length} 条`);
+  } catch (err) {
+    logger.error('导出订单失败:', err);
+    return res.status(500).json({
+      code: 500,
+      message: '导出失败'
+    });
+  }
+};
+
+/**
  * 更新订单状态（运营方操作）
  */
 exports.updateOrderStatus = async (req, res) => {

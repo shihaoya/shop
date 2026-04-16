@@ -14,6 +14,7 @@ router.post('/orders/:id/cancel', orderController.cancelOrder); // 取消订单
 
 // 运营方路由
 router.get('/operator/orders', orderController.getOperatorOrders); // 获取运营方订单列表
+router.get('/operator/orders/export', orderController.exportOrders); // 导出订单
 router.put('/operator/orders/:id/status', orderController.updateOrderStatus); // 更新订单状态
 
 module.exports = router;
