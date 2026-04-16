@@ -53,7 +53,7 @@ mysql -u root -p -e "INSERT INTO users (username, password, nickname, role, stat
 npm run dev
 ```
 
-后端服务：**http://localhost:8367**
+后端服务：**http://localhost:18634**
 
 ### 3. 前端启动
 ```bash
@@ -62,7 +62,7 @@ npm install
 npm run dev
 ```
 
-前端服务：**http://localhost:8366**
+前端服务：**http://localhost:18635**
 
 ### 4. 运行测试
 ```bash
@@ -208,7 +208,7 @@ test-shop/
 ## 🔌 API 文档
 
 后端服务启动后：
-- **基础URL**: http://localhost:8367/api/v1
+- **基础URL**: http://localhost:18634/api/v1
 - **详细接口**: 查看 `backend/src/routes/` 目录
 
 ---

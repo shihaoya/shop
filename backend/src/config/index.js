@@ -7,7 +7,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../', envFile) });
 console.log(`📝 加载配置文件: ${envFile} (NODE_ENV=${process.env.NODE_ENV})`);
 
 module.exports = {
-  port: process.env.PORT || 8367,
+  port: process.env.PORT || 18634,
   nodeEnv: process.env.NODE_ENV || 'development',
   
   database: {
@@ -42,7 +42,7 @@ module.exports = {
   },
   
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:8366',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:18635',
     credentials: true
   },
   

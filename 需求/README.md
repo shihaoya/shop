@@ -56,7 +56,7 @@
 ### 我要查看API接口，应该看什么？
 
 - 后端代码：`backend/src/routes/` 目录
-- 启动后端服务后访问：http://localhost:8367/api/v1
+- 启动后端服务后访问：http://localhost:18634/api/v1
 
 ---
 
