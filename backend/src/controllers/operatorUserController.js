@@ -78,21 +78,28 @@ exports.getAvailableUsers = async (req, res) => {
 exports.addExistingUser = async (req, res) => {
   try {
     const operatorId = req.user.id;
-    const { userId, initialPoints } = req.body;
+    const { userId, username, initialPoints } = req.body;
 
     // 验证参数
-    if (!userId || initialPoints === undefined || initialPoints === null) {
-      return error(res, '用户ID和初始积分为必填项', 400);
+    if ((!userId && !username) || initialPoints === undefined || initialPoints === null) {
+      return error(res, '用户ID或用户名和初始积分为必填项', 400);
     }
 
     if (initialPoints < 0) {
       return error(res, '初始积分不能为负数', 400);
     }
 
-    // 查找用户
-    const user = await User.findOne({
-      where: { id: userId, isDeleted: 0 }
-    });
+    // 查找用户（支持userId或username）
+    let user;
+    if (userId) {
+      user = await User.findOne({
+        where: { id: userId, isDeleted: 0 }
+      });
+    } else {
+      user = await User.findOne({
+        where: { username, isDeleted: 0 }
+      });
+    }
 
     if (!user) {
       return error(res, '用户不存在', 404);
