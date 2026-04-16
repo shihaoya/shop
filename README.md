@@ -16,22 +16,78 @@
 
 ---
 
-## 🛠️ 技术栈
+## 🚀 快速开始
 
-### 后端
-- **框架**: Node.js + Express
-- **数据库**: MySQL 8.0+
-- **ORM**: Sequelize
-- **认证**: JWT
-- **密码加密**: bcryptjs
-- **测试**: Jest + Supertest
+### 前置条件
+- Node.js 18+
+- MySQL 8.0+
+- npm 或 yarn
 
-### 前端
-- **框架**: Vue 3 + Vite
-- **UI库**: Element Plus
-- **状态管理**: Pinia
-- **路由**: Vue Router
-- **HTTP客户端**: Axios
+### 1. 克隆项目
+```bash
+git clone <repository-url>
+cd test-shop
+```
+
+### 2. 后端启动
+```bash
+cd backend
+npm install
+
+# 配置环境变量（复制 .env.example 到 .env 并修改配置）
+cp .env.example .env
+
+# 初始化数据库
+mysql -u root -p < database/init.sql
+
+# 初始化管理员账号（推荐）
+node scripts/init-admin.js
+
+# 如果脚本失败，可以手动创建管理员：
+# 1. 生成密码哈希
+node -e "const bcrypt=require('bcryptjs');bcrypt.hash('Admin@123456',10).then(h=>console.log(h));"
+# 2. 将输出的哈希值替换到下面的SQL中
+mysql -u root -p -e "INSERT INTO users (username, password, nickname, role, status) VALUES ('admin', '生成的哈希值', '系统管理员', 'admin', 1);"
+
+# 启动服务
+npm run dev
+```
+
+后端服务：**http://localhost:8367**
+
+### 3. 前端启动
+```bash
+cd frontend-pc
+npm install
+npm run dev
+```
+
+前端服务：**http://localhost:8366**
+
+### 4. 运行测试
+```bash
+cd backend
+
+# 创建测试数据库（首次运行）
+mysql -u root -p -e "CREATE DATABASE point_exchange_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# 运行测试
+npm test
+```
+
+---
+
+## 👤 默认账号
+
+| 角色 | 用户名 | 密码 |
+|------|--------|------|
+| 管理员 | admin | Admin@123456 |
+| 运营方 | operator | Operator@123456 |
+| 普通用户 | user | User@123456 |
+
+⚠️ **首次使用前请修改默认密码！**
+
+---
 
 ## 📁 项目结构
 
@@ -56,77 +112,51 @@ test-shop/
 │   │   ├── store/       # Pinia状态管理
 │   │   ├── router/      # 路由配置
 │   │   └── api/         # API接口
-└── 需求/                # 需求文档
-    ├── 积分兑换系统需求规格说明书.md
-    ├── 操作流程文档.md
-    ├── 开发文档-*.md    # 各阶段开发文档
-    └── 开发进度跟踪.md  # 整体进度
+└── 需求/                # 项目文档
+    ├── README.md                    # 本文档
+    ├── 积分兑换系统需求规格说明书.md  # 需求定义
+    ├── 操作流程文档.md              # 操作说明
+    ├── 开发进度跟踪.md              # 整体进度
+    └── 开发文档-*.md               # 各阶段技术实现
 ```
 
 ---
 
-## 🚀 快速开始
+## 📝 文档导航
 
-### 前置条件
-- Node.js 18+
-- MySQL 8.0+
-- npm 或 yarn
+### 入门文档
+- **[需求规格说明书](需求/积分兑换系统需求规格说明书.md)** - 完整的需求定义
+- **[操作流程文档](需求/操作流程文档.md)** - 系统操作流程说明
+- **[开发进度跟踪](需求/开发进度跟踪.md)** - 项目整体进度
 
-### 1. 后端启动
+### 技术开发文档
+- **[第一阶段：基础框架](需求/开发文档-第一阶段-基础框架.md)** - 后端基础、认证授权
+- **[第二阶段：核心业务](需求/开发文档-第二阶段-核心业务.md)** - 多租户、商品、用户、积分管理
+- **[第三阶段：订单消息](需求/开发文档-第三阶段-订单消息.md)** - 订单管理、消息通知
+- **[第四阶段：移动端](需求/开发文档-第四阶段-移动端.md)** - 移动端H5开发（待开发）
+- **[第五阶段：测试部署](需求/开发文档-第五阶段-测试部署.md)** - 测试与部署（待开发）
 
-```bash
-# 进入后端目录
-cd backend
+### 后端文档
+- **[数据库管理指南](backend/DATABASE_GUIDE.md)** - 数据库结构管理
+- **[测试报告](backend/TEST_REPORT.md)** - 单元测试结果
 
-# 安装依赖
-npm install
+---
 
-# 配置环境变量
-cp .env.example .env  # 或手动编辑 .env 文件
-# 修改数据库配置：
-# DB_HOST=localhost
-# DB_USER=root
-# DB_PASSWORD=你的密码
-# DB_NAME=point_exchange_system
+## 🛠️ 技术栈
 
-# 初始化数据库
-mysql -u root -p < database/init.sql
+### 后端
+- **框架**: Node.js + Express
+- **数据库**: MySQL 8.0+
+- **ORM**: Sequelize
+- **认证**: JWT
+- **测试**: Jest + Supertest
 
-# 初始化管理员账号
-node scripts/init-admin.js
-
-# 启动服务（开发模式）
-npm run dev
-```
-
-后端服务将在 **http://localhost:8367** 启动
-
-### 2. 前端启动
-
-```bash
-# 进入前端目录
-cd frontend-pc
-
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-```
-
-前端服务将在 **http://localhost:8366** 启动
-
-### 3. 运行测试
-
-```bash
-cd backend
-
-# 首次运行前创建测试数据库
-mysql -u root -p -e "CREATE DATABASE point_exchange_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 运行测试
-npm test
-```
+### 前端
+- **框架**: Vue 3 + Vite
+- **UI库**: Element Plus
+- **状态管理**: Pinia
+- **路由**: Vue Router
+- **HTTP客户端**: Axios
 
 ---
 
@@ -164,43 +194,6 @@ npm test
 
 ---
 
-## 👤 默认账号
-
-- **管理员**: admin / Admin@123456
-- **运营方**: operator / Operator@123456
-- **普通用户**: user / User@123456
-
-⚠️ **注意**: 首次使用前请修改默认密码！
-
----
-
-## 🔌 API文档
-
-后端服务启动后，访问以下地址查看API文档：
-- **基础URL**: http://localhost:8367/api/v1
-- **详细接口**: 查看 `backend/src/routes/` 目录
-
----
-
-## 📝 文档
-
-详细文档请查看 `需求/` 目录：
-
-| 文档 | 说明 |
-|------|------|
-| [需求规格说明书](需求/积分兑换系统需求规格说明书.md) | 完整的需求定义 |
-| [操作流程文档](需求/操作流程文档.md) | 系统操作流程 |
-| [开发进度跟踪](需求/开发进度跟踪.md) | 整体项目进度 |
-| [开发文档-第一阶段](需求/开发文档-第一阶段-基础框架.md) | 基础框架实现 |
-| [开发文档-第二阶段](需求/开发文档-第二阶段-核心业务.md) | 核心业务实现 |
-| [开发文档-第三阶段](需求/开发文档-第三阶段-订单消息.md) | 订单消息实现 |
-
-**后端文档**：
-- [数据库管理指南](backend/DATABASE_GUIDE.md) - 数据库结构管理
-- [测试报告](backend/TEST_REPORT.md) - 单元测试结果
-
----
-
 ## 💻 开发规范
 
 - 遵循 RESTful API 设计规范
@@ -209,6 +202,14 @@ npm test
 - 敏感操作必须记录日志
 - 数据库结构变更需同步更新 `init.sql`
 - 提交前运行测试确保通过
+
+---
+
+## 🔌 API 文档
+
+后端服务启动后：
+- **基础URL**: http://localhost:8367/api/v1
+- **详细接口**: 查看 `backend/src/routes/` 目录
 
 ---
 
