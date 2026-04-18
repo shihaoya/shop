@@ -14,7 +14,7 @@ USE point_exchange_system;
 -- ============================================
 CREATE TABLE IF NOT EXISTS `users` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '用户ID',
-  `username` VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
+  `username` VARCHAR(50) NOT NULL COMMENT '用户名',
   `password` VARCHAR(255) NOT NULL COMMENT '密码（bcrypt加密）',
   `nickname` VARCHAR(50) DEFAULT NULL COMMENT '昵称',
   `role` ENUM('admin', 'operator', 'user') NOT NULL DEFAULT 'user' COMMENT '角色',
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS `user_tenant_relations` (
   `deleted_at` DATETIME DEFAULT NULL COMMENT '删除时间',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  UNIQUE KEY `uk_user_tenant` (`user_id`, `tenant_id`),
+  INDEX `idx_user_tenant` (`user_id`, `tenant_id`),
   INDEX `idx_user_id` (`user_id`),
   INDEX `idx_tenant_id` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户-租户关联表';

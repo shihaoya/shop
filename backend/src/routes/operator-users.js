@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const operatorUserController = require('../controllers/operatorUserController');
 const { authMiddleware, requireRole } = require('../middlewares/auth');
+const uploadExcel = require('../middlewares/uploadExcel');
 
 // 所有用户管理接口都需要operator角色
 router.use(authMiddleware);
@@ -10,6 +11,9 @@ router.use(requireRole('operator'));
 // 用户管理（静态路由在前）
 router.get('/', operatorUserController.getUsers);
 router.post('/create-new', operatorUserController.createNewUser); // 创建新用户
+router.get('/template', operatorUserController.downloadTemplate); // 下载导入模板
+router.post('/import', uploadExcel.single('file'), operatorUserController.importUsers); // 导入用户
+router.post('/download-result', operatorUserController.downloadImportResult); // 下载导入结果
 router.get('/trash/list', operatorUserController.getTrashUsers);
 
 // 申请审核

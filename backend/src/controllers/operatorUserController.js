@@ -1,8 +1,11 @@
-const { User, Tenant, UserTenantRelation } = require('../models');
+const { User, Tenant, UserTenantRelation, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const { logger } = require('../middlewares/logger');
 const { success, error } = require('../utils/response');
+const fs = require('fs');
+const path = require('path');
+const XLSX = require('xlsx');
 
 /**
  * 辅助函数：获取运营方的租户ID
@@ -241,18 +244,19 @@ exports.removeUser = async (req, res) => {
     const operatorId = req.user.id;
     const { userId } = req.params;
 
-    const tenantId = await getOperatorTenantId(operatorId);
+    // 前端传的是 UserTenantRelation 关系表的 ID，不是用户 ID
+    // 所以直接用关系 ID 查询
+    const relation = await UserTenantRelation.findByPk(userId);
 
-    const relation = await UserTenantRelation.findOne({
-      where: {
-        userId,
-        tenantId,
-        isDeleted: 0
-      }
-    });
+    console.log('[DEBUG] removeUser - 关系 ID:', userId, '关系数据:', relation ? { id: relation.id, userId: relation.userId, tenantId: relation.tenantId, isDeleted: relation.isDeleted } : null);
 
     if (!relation) {
       return error(res, '用户不存在或不属于此租户', 404);
+    }
+
+    // 如果已经被删除，直接返回成功（幂等操作）
+    if (relation.isDeleted === 1) {
+      return success(res, null, '用户已移除');
     }
 
     // 逻辑删除
@@ -261,7 +265,7 @@ exports.removeUser = async (req, res) => {
       deletedAt: new Date()
     });
 
-    logger.info(`运营方 ${operatorId} 移除用户 ${userId} 从租户 ${tenantId}`);
+    logger.info(`运营方 ${operatorId} 移除用户 ${relation.userId} 从租户 ${relation.tenantId}`);
 
     return success(res, null, '用户已移除');
   } catch (err) {
@@ -523,6 +527,331 @@ exports.rejectApplication = async (req, res) => {
     const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
     logger.error(`审核拒绝失败: ${errorMsg}`);
     return error(res, errorMsg || '操作失败', 500);
+  }
+};
+
+/**
+ * 下载导入模板
+ */
+exports.downloadTemplate = async (req, res) => {
+  try {
+    // 创建工作簿
+    const workbook = XLSX.utils.book_new();
+    
+    // 创建数据（仅表头）
+    const data = [
+      ['用户名', '昵称', '积分']
+    ];
+    
+    // 创建工作表
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    
+    // 设置列宽
+    worksheet['!cols'] = [
+      { wch: 15 }, // 用户名
+      { wch: 15 }, // 昵称
+      { wch: 10 }  // 积分
+    ];
+    
+    // 添加工作表到工作簿
+    XLSX.utils.book_append_sheet(workbook, worksheet, '用户导入模板');
+    
+    // 生成 Excel 文件缓冲区
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    // 设置响应头（文件名需要 URL 编码）
+    const fileName = encodeURIComponent('用户导入模板.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"; filename*=UTF-8''${fileName}`);
+    res.setHeader('Content-Length', buffer.length);
+    
+    // 发送文件
+    res.send(buffer);
+    
+    logger.info(`运营方 ${req.user.id} 下载了用户导入模板`);
+  } catch (err) {
+    const errorMsg = err.message || '未知错误';
+    logger.error(`下载模板失败: ${errorMsg}`);
+    return error(res, errorMsg || '下载失败', 500);
+  }
+};
+
+/**
+ * 解析 Excel/CSV 文件内容
+ */
+function parseExcelFile(filePath) {
+  try {
+    // 读取工作簿
+    const workbook = XLSX.readFile(filePath);
+    
+    // 获取第一个工作表
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new Error('Excel 文件中没有工作表');
+    }
+    
+    const worksheet = workbook.Sheets[sheetName];
+    
+    // 转换为 JSON（第一行作为表头）
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    
+    if (jsonData.length < 2) {
+      throw new Error('文件格式不正确，至少需要表头和一行数据');
+    }
+    
+    // 提取表头
+    const headers = jsonData[0].map(h => String(h).trim());
+    
+    // 验证必要的列
+    const requiredHeaders = ['用户名', '积分'];
+    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+    if (missingHeaders.length > 0) {
+      throw new Error(`缺少必要的列：${missingHeaders.join(', ')}`);
+    }
+    
+    // 转换数据
+    const data = [];
+    for (let i = 1; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      if (!row || row.length === 0) continue; // 跳过空行
+      
+      const obj = {};
+      headers.forEach((header, index) => {
+        obj[header] = row[index] !== undefined ? String(row[index]).trim() : '';
+      });
+      data.push(obj);
+    }
+    
+    return data;
+  } catch (err) {
+    throw new Error(`Excel 文件解析失败: ${err.message}`);
+  }
+}
+
+/**
+ * 导入用户
+ */
+exports.importUsers = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  
+  try {
+    const operatorId = req.user.id;
+    
+    if (!req.file) {
+      return error(res, '请上传文件', 400);
+    }
+
+    // 获取租户ID
+    const tenantId = await getOperatorTenantId(operatorId);
+
+    // 读取并解析 Excel/CSV 文件
+    let userData;
+    try {
+      userData = parseExcelFile(req.file.path);
+    } catch (parseErr) {
+      // 删除临时文件
+      fs.unlinkSync(req.file.path);
+      return error(res, parseErr.message, 400);
+    }
+
+    if (userData.length === 0) {
+      fs.unlinkSync(req.file.path);
+      return error(res, '文件中没有有效数据', 400);
+    }
+
+    // 先验证所有数据，如果有错误直接返回
+    const errors = [];
+    for (let i = 0; i < userData.length; i++) {
+      const row = userData[i];
+      const rowNum = i + 2; // 从第2行开始（第1行是表头）
+
+      const username = row['用户名'];
+      const nickname = row['昵称'] || null;
+      const points = row['积分'];
+
+      // 验证必填字段
+      if (!username) {
+        errors.push({
+          row: rowNum,
+          username: '',
+          error: '用户名不能为空'
+        });
+        continue;
+      }
+
+      if (points === undefined || points === null || points === '') {
+        errors.push({
+          row: rowNum,
+          username: username || '',
+          error: '积分不能为空'
+        });
+        continue;
+      }
+
+      const pointsBalance = parseInt(points);
+      if (isNaN(pointsBalance) || pointsBalance < 0) {
+        errors.push({
+          row: rowNum,
+          username: username || '',
+          error: '积分必须是非负整数'
+        });
+        continue;
+      }
+
+      // 检查用户名是否已存在（过滤已删除的用户）
+      const existingUser = await User.findOne({
+        where: { 
+          username,
+          isDeleted: 0  // 只查询未删除的用户
+        },
+        transaction
+      });
+
+      if (existingUser) {
+        errors.push({
+          row: rowNum,
+          username: username || '',
+          error: '用户名已存在'
+        });
+      }
+    }
+
+    // 如果有错误，直接返回
+    if (errors.length > 0) {
+      fs.unlinkSync(req.file.path);
+      await transaction.rollback();
+      return error(res, `数据验证失败，共 ${errors.length} 个错误`, 400, errors);
+    }
+
+    // 所有数据验证通过，开始批量创建
+    const createdUsers = [];
+    
+    for (let i = 0; i < userData.length; i++) {
+      const row = userData[i];
+      const username = row['用户名'];
+      const nickname = row['昵称'] || null;
+      const pointsBalance = parseInt(row['积分']);
+
+      // 生成随机密码
+      const randomPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      // 创建用户
+      const user = await User.create({
+        username,
+        password: hashedPassword,
+        nickname: nickname || null,
+        role: 'user'
+      }, { transaction });
+
+      // 创建关联
+      await UserTenantRelation.create({
+        userId: user.id,
+        tenantId,
+        status: 'approved',
+        pointsBalance
+      }, { transaction });
+
+      createdUsers.push({
+        username,
+        nickname: nickname || '',
+        password: randomPassword,
+        pointsBalance
+      });
+
+      logger.info(`运营方 ${operatorId} 导入新用户 ${user.id}: ${username}`);
+    }
+
+    // 提交事务
+    await transaction.commit();
+
+    // 删除临时文件
+    fs.unlinkSync(req.file.path);
+
+    logger.info(`运营方 ${operatorId} 成功导入 ${createdUsers.length} 个用户`);
+
+    return success(res, {
+      count: createdUsers.length,
+      users: createdUsers
+    }, `成功导入 ${createdUsers.length} 个用户`);
+  } catch (err) {
+    // 回滚事务
+    await transaction.rollback();
+
+    // 确保删除临时文件
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {
+        logger.error(`删除临时文件失败: ${e.message}`);
+      }
+    }
+
+    const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
+    logger.error(`导入用户失败: ${errorMsg}`);
+    return error(res, `导入失败：${errorMsg}`, 500);
+  }
+};
+
+/**
+ * 下载导入结果（Excel 格式）
+ */
+exports.downloadImportResult = async (req, res) => {
+  try {
+    const { users } = req.body;
+    
+    if (!users || !Array.isArray(users) || users.length === 0) {
+      return error(res, '没有可下载的数据', 400);
+    }
+
+    // 创建工作簿
+    const workbook = XLSX.utils.book_new();
+    
+    // 准备数据（表头 + 数据）
+    const data = [
+      ['用户名', '昵称', '密码', '初始积分']
+    ];
+    
+    users.forEach(user => {
+      data.push([
+        user.username || '',
+        user.nickname || '',
+        user.password || '',
+        user.pointsBalance || 0
+      ]);
+    });
+    
+    // 创建工作表
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    
+    // 设置列宽
+    worksheet['!cols'] = [
+      { wch: 15 }, // 用户名
+      { wch: 15 }, // 昵称
+      { wch: 15 }, // 密码
+      { wch: 10 }  // 初始积分
+    ];
+    
+    // 添加工作表到工作簿
+    XLSX.utils.book_append_sheet(workbook, worksheet, '导入结果');
+    
+    // 生成 Excel 文件缓冲区
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    // 设置响应头（文件名需要 URL 编码）
+    const fileName = encodeURIComponent(`用户导入结果_${Date.now()}.xlsx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"; filename*=UTF-8''${fileName}`);
+    res.setHeader('Content-Length', buffer.length);
+    
+    // 发送文件
+    res.send(buffer);
+    
+    logger.info(`运营方 ${req.user.id} 下载了导入结果，共 ${users.length} 个用户`);
+  } catch (err) {
+    const errorMsg = err.message || '未知错误';
+    logger.error(`下载导入结果失败: ${errorMsg}`);
+    return error(res, errorMsg || '下载失败', 500);
   }
 };
 
