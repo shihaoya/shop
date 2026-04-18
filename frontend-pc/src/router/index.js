@@ -96,12 +96,6 @@ const routes = [
         meta: { title: '用户管理', icon: 'Avatar' }
       },
       {
-        path: 'points',
-        name: 'PointsManage',
-        component: () => import('@/views/Operator/PointsManage.vue'),
-        meta: { title: '积分管理', icon: 'UserFilled' }
-      },
-      {
         path: 'orders',
         name: 'OperatorOrderManage',
         component: () => import('@/views/Operator/OrderManage.vue'),

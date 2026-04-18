@@ -631,7 +631,7 @@ const submitAudit = async () => {
 // 移除用户
 const handleRemove = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定要移除用户 ${row.username} 吗？移除后可在回收站恢复`, '提示', {
+    await ElMessageBox.confirm(`确定要移除用户 ${row.username} 吗？`, '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'

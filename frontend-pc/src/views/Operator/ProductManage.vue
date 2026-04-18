@@ -343,7 +343,7 @@ const handleToggleStatus = async (row) => {
 // 删除
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要删除该商品吗？删除后可在回收站恢复', '提示', {
+    await ElMessageBox.confirm('确定要删除该商品吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
