@@ -20,7 +20,6 @@
       </template>
       
       <el-table :data="productList" v-loading="loading" style="width: 100%">
-        <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="商品名称" min-width="200" />
         <el-table-column prop="pointsRequired" label="所需积分" width="120">
           <template #default="{ row }">

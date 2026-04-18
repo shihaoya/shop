@@ -59,7 +59,6 @@
 
       <!-- 用户列表 -->
       <el-table :data="tableData" v-loading="loading" border stripe>
-        <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="username" label="用户名" width="150" />
         <el-table-column prop="nickname" label="昵称" width="150" />
         <el-table-column prop="pointsBalance" label="积分余额" width="120" />

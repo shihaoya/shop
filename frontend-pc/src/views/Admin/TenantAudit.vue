@@ -67,7 +67,6 @@
     <!-- 审核历史对话框 -->
     <el-dialog v-model="showHistoryDialog" title="审核历史记录" width="900px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-table :data="historyList" v-loading="historyLoading" style="width: 100%">
-        <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="审核结果" width="120">
           <template #default="{ row }">
             <el-tag :type="row.auditResult === 'approved' ? 'success' : 'danger'">

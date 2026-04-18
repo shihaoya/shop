@@ -37,7 +37,6 @@
 
       <!-- 商品列表 -->
       <el-table :data="productList" v-loading="loading" border stripe>
-        <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="商品图片" width="100">
           <template #default="{ row }">
             <el-image 

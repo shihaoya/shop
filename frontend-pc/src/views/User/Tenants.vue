@@ -20,7 +20,6 @@
 
       <!-- 运营方列表表格 -->
       <el-table :data="tenantList" v-loading="loading" border stripe>
-        <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="运营方名称" min-width="150" />
         <el-table-column label="描述" min-width="200">
           <template #default="{ row }">
