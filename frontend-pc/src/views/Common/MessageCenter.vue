@@ -184,8 +184,7 @@ const fetchMessages = async () => {
       total.value = res.data.total
     }
   } catch (error) {
-    console.error('获取消息列表失败:', error)
-    ElMessage.error('获取消息列表失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }
@@ -244,8 +243,7 @@ const handleViewDetail = async (row) => {
       fetchUnreadCount()
     }
   } catch (error) {
-    console.error('获取消息详情失败:', error)
-    ElMessage.error('获取消息详情失败')
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -259,8 +257,7 @@ const handleMarkRead = async (row) => {
       fetchUnreadCount()
     }
   } catch (error) {
-    console.error('标记已读失败:', error)
-    ElMessage.error('标记失败')
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -280,10 +277,7 @@ const handleMarkAllRead = async () => {
       fetchUnreadCount()
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('批量标记失败:', error)
-      ElMessage.error('批量标记失败')
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 

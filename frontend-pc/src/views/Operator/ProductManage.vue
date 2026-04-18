@@ -306,7 +306,7 @@ const handleSubmit = async () => {
       dialogVisible.value = false
       fetchData()
     } catch (error) {
-      ElMessage.error(error.response?.data?.message || '操作失败')
+      // 响应拦截器已统一处理错误提示
     } finally {
       submitLoading.value = false
     }
@@ -337,9 +337,7 @@ const handleToggleStatus = async (row) => {
     ElMessage.success(`${action}成功`)
     fetchData()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.response?.data?.message || `${action}失败`)
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -356,9 +354,7 @@ const handleDelete = async (row) => {
     ElMessage.success('删除成功')
     fetchData()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.response?.data?.message || '删除失败')
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -399,7 +395,7 @@ const handleImageSuccess = (response) => {
     })
     ElMessage.success('图片上传成功')
   } else {
-    ElMessage.error(response.message || '上传失败')
+    // 响应拦截器已统一处理错误提示
   }
 }
 

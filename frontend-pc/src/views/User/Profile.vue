@@ -5,7 +5,9 @@
       <el-col :span="8">
         <el-card>
           <div class="user-info">
-            <el-avatar :size="80" :src="userInfo.avatar" icon="UserFilled" />
+            <el-avatar :size="80" class="profile-avatar">
+              {{ (userInfo.nickname || userInfo.username || '?').charAt(0).toUpperCase() }}
+            </el-avatar>
             <h2>{{ userInfo.nickname || userInfo.username }}</h2>
             <p><strong>用户名：</strong>{{ userInfo.username }}</p>
             <p><strong>昵称：</strong>{{ userInfo.nickname || '未设置' }}</p>
@@ -73,29 +75,17 @@
 
           <el-card style="margin-top: 20px">
             <template #header>
-              <span>已加入的运营方</span>
+              <span>所属店铺</span>
             </template>
-            <div class="tenant-list">
-              <el-empty v-if="approvedTenants.length === 0" description="您还未加入任何运营方" />
-              <el-table v-else :data="approvedTenants" stripe>
-                <el-table-column prop="tenant.name" label="运营方名称" />
-                <el-table-column prop="status" label="状态" width="100">
-                  <template #default="{ row }">
-                    <el-tag type="success">已通过</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" width="120">
-                  <template #default="{ row }">
-                    <el-button link type="primary" size="small" @click="switchTenant(row.tenant.id)">
-                      切换
-                    </el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-            <div class="tip-text">
-              <el-icon :size="16"><InfoFilled /></el-icon>
-              提示：您可以在顶部导航栏快速切换运营方
+            <div class="tenant-info">
+              <el-descriptions :column="1" border>
+                <el-descriptions-item label="店铺名称">
+                  {{ currentTenant?.name || '加载中...' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="加入时间">
+                  {{ currentTenant?.joinTime ? formatTime(currentTenant.joinTime) : '-' }}
+                </el-descriptions-item>
+              </el-descriptions>
             </div>
           </el-card>
         </template>
@@ -221,7 +211,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UserFilled, Edit, Refresh, InfoFilled } from '@element-plus/icons-vue'
-import { getMyApplications, getCurrentPoints, getUserPointTransactions, getMyTenantStatus, resubmitAudit } from '@/api'
+import { getCurrentPoints, getUserPointTransactions, getMyTenantStatus, resubmitAudit } from '@/api'
 import { updateUserInfo } from '@/api/auth'
 import { useUserStore } from '@/store/user'
 import dayjs from 'dayjs'
@@ -280,21 +270,23 @@ const transactionsVisible = ref(false)
 const transactionsLoading = ref(false)
 const transactionsData = ref([])
 
-const approvedTenants = ref([])
+// 当前所属店铺信息
+const currentTenant = ref(null)
 
-// 加载已通过的申请
-const loadApprovedTenants = async () => {
+// 加载当前店铺信息
+const loadCurrentTenant = async () => {
+  if (userInfo.role !== 'user') return
+  
   try {
-    const res = await getMyApplications({ page: 1, pageSize: 100 })
-    if (res.code === 200) {
-      approvedTenants.value = res.data.list.filter(item => item.status === 'approved')
-      if (approvedTenants.value.length > 0) {
-        selectedTenant.value = approvedTenants.value[0].tenant.id
-        await loadCurrentPoints()
+    const res = await getMyTenantStatus()
+    if (res.code === 200 && res.data) {
+      currentTenant.value = {
+        name: res.data.tenant?.name || '-',
+        joinTime: res.data.createdAt
       }
     }
   } catch (error) {
-    console.error('加载运营方列表失败', error)
+    console.error('加载店铺信息失败:', error)
   }
 }
 
@@ -326,22 +318,6 @@ const loadCurrentPoints = async () => {
   }
 }
 
-// 切换运营方
-const switchTenant = async (tenantId) => {
-  try {
-    await tenantStore.switchTenant(tenantId)
-    ElMessage.success('切换运营方成功')
-    // 重新加载积分信息
-    await loadCurrentPoints()
-  } catch (error) {
-    ElMessage.error('切换失败')
-  }
-}
-
-const handleTenantChange = async () => {
-  await loadCurrentPoints()
-}
-
 // 查看流水
 const viewTransactions = async () => {
   if (!selectedTenant.value) {
@@ -362,7 +338,7 @@ const viewTransactions = async () => {
       transactionsData.value = res.data.list
     }
   } catch (error) {
-    ElMessage.error('获取流水失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     transactionsLoading.value = false
   }
@@ -397,8 +373,7 @@ const handleSubmitEdit = async () => {
         ElMessage.success('更新成功')
         showEditDialog.value = false
       } catch (error) {
-        console.error('更新失败:', error)
-        ElMessage.error('更新失败：' + (error.message || '未知错误'))
+        // 响应拦截器已统一处理错误提示
       } finally {
         submitting.value = false
       }
@@ -492,7 +467,7 @@ onMounted(() => {
   
   // 加载其他数据
   if (userInfo.role === 'user') {
-    loadApprovedTenants()
+    loadCurrentTenant()
   } else if (userInfo.role === 'operator') {
     loadTenantInfo()
   }
@@ -506,6 +481,14 @@ onMounted(() => {
 
 .user-info {
   text-align: center;
+}
+
+.profile-avatar {
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 32px;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
 }
 
 .user-info h2 {

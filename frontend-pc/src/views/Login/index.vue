@@ -115,13 +115,12 @@ const handleLogin = async () => {
           rememberMe: loginForm.rememberMe
         })
         
-        ElMessage.success('登录成功')
-        
         // 登录成功后跳转到根路径，由路由守卫自动重定向到对应角色的首页
-        router.push('/')
+        // 强制刷新页面
+        window.location.href = '/'
       } catch (error) {
         console.error('登录失败:', error)
-        ElMessage.error(error.message || '登录失败')
+        // 响应拦截器已统一处理错误提示，这里不需要重复显示
       } finally {
         loading.value = false
       }

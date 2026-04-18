@@ -25,6 +25,14 @@ export function getProducts(params) {
   })
 }
 
+// 运营方工作台统计
+export function getOperatorDashboardStats() {
+  return request({
+    url: '/operator/dashboard/stats',
+    method: 'get'
+  })
+}
+
 // 用户端获取商品列表（根据租户ID）
 export function getTenantProducts(tenantId, params) {
   return request({
@@ -105,27 +113,10 @@ export function getUsers(params) {
   })
 }
 
-// 获取可添加的用户列表（用于下拉选择）
-export function getAvailableUsers(params) {
-  return request({
-    url: '/operator/users/available',
-    method: 'get',
-    params
-  })
-}
-
 export function getUserDetail(userId) {
   return request({
     url: `/operator/users/${userId}`,
     method: 'get'
-  })
-}
-
-export function addExistingUser(data) {
-  return request({
-    url: '/operator/users/add-existing',
-    method: 'post',
-    data
   })
 }
 
@@ -156,6 +147,14 @@ export function getTrashUsers(params) {
     url: '/operator/users/trash/list',
     method: 'get',
     params
+  })
+}
+
+// 重置用户密码
+export function resetUserPassword(userId) {
+  return request({
+    url: `/operator/users/${userId}/reset-password`,
+    method: 'post'
   })
 }
 
@@ -242,33 +241,11 @@ export function getPointTransactions(userId, params) {
 }
 
 // 普通用户功能
-export function getUserTenants(params) {
-  return request({
-    url: '/user/tenants',
-    method: 'get',
-    params
-  })
-}
-
-export function applyJoinTenant(tenantId) {
-  return request({
-    url: `/user/tenants/${tenantId}/apply`,
-    method: 'post'
-  })
-}
-
 export function getMyApplications(params) {
   return request({
     url: '/user/applications',
     method: 'get',
     params
-  })
-}
-
-export function switchTenant(tenantId) {
-  return request({
-    url: `/user/tenants/${tenantId}/switch`,
-    method: 'post'
   })
 }
 

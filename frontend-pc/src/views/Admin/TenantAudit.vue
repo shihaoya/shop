@@ -248,8 +248,7 @@ const loadHistory = async () => {
     historyList.value = res.data.list
     historyTotal.value = res.data.total
   } catch (error) {
-    console.error('加载审核历史失败:', error)
-    ElMessage.error('加载审核历史失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     historyLoading.value = false
   }

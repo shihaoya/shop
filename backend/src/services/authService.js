@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
-const { User, Tenant } = require('../models');
+const { User, Tenant, UserTenantRelation } = require('../models');
 const { hashPassword, verifyPassword } = require('../utils/encrypt');
 const { logger } = require('../middlewares/logger');
 
@@ -104,6 +104,50 @@ const login = async (username, password, rememberMe = false) => {
     lastLoginAt: new Date()
   });
   
+  // 获取用户的当前租户信息
+  let currentTenantId = null;
+  let currentTenantName = null;
+  
+  if (user.role === 'user') {
+    // 普通用户：从 user_tenant_relations 表查询
+    const relation = await UserTenantRelation.findOne({
+      where: { 
+        userId: user.id, 
+        status: 'approved',
+        isDeleted: 0 
+      },
+      include: [
+        {
+          model: Tenant,
+          as: 'tenant',
+          attributes: ['id', 'name']
+        }
+      ]
+    });
+    
+    if (relation && relation.tenant) {
+      currentTenantId = relation.tenant.id;
+      currentTenantName = relation.tenant.name;
+      logger.info(`用户 ${user.id} 登录，当前租户: ${currentTenantName}`);
+    } else {
+      logger.warn(`用户 ${user.id} 登录，未找到 approved 状态的租户关联`);
+    }
+  } else if (user.role === 'operator') {
+    // 运营方：从 tenants 表查询
+    const tenant = await Tenant.findOne({
+      where: { 
+        userId: user.id,
+        isDeleted: 0 
+      },
+      attributes: ['id', 'name']
+    });
+    
+    if (tenant) {
+      currentTenantId = tenant.id;
+      currentTenantName = tenant.name;
+    }
+  }
+  
   // 生成Token
   const tokenPayload = {
     userId: user.id,
@@ -123,7 +167,9 @@ const login = async (username, password, rememberMe = false) => {
       id: user.id,
       username: user.username,
       nickname: user.nickname,
-      role: user.role
+      role: user.role,
+      currentTenantId,
+      currentTenantName
     }
   };
 };

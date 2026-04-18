@@ -145,12 +145,12 @@ exports.getProducts = async (req, res) => {
     // 处理数据，添加图片URL
     const list = rows.map(row => {
       const data = row.get({ plain: true });
-      // 保留文件ID（数据库中的 image_file_id 字段）
-      data.imageFileId = data.imageFileId;
-      // 添加图片URL用于显示
+      // 从关联的 imageFile 中获取文件ID
       if (data.imageFile) {
+        data.imageFileId = data.imageFile.id;
         data.imageUrl = `/uploads/${data.imageFile.fileName}`;
       } else {
+        data.imageFileId = null;
         data.imageUrl = null;
       }
       delete data.imageFile;
@@ -229,9 +229,14 @@ exports.updateProduct = async (req, res) => {
       description: description !== undefined ? description : product.description,
       pointsRequired: pointsRequired !== undefined ? pointsRequired : product.pointsRequired,
       stock: stock !== undefined ? stock : product.stock,
-      category: category !== undefined ? category : product.category,
-      imageUrl: req.body.imageFileId !== undefined ? parseInt(req.body.imageFileId) : product.imageUrl // 支持通过文件ID更新图片
+      category: category !== undefined ? category : product.category
     };
+    
+    // 只有当 imageFileId 有有效值时才更新图片
+    if (req.body.imageFileId !== undefined && req.body.imageFileId !== null && req.body.imageFileId !== '') {
+      updateData.imageUrl = parseInt(req.body.imageFileId);
+    }
+    // 如果 imageFileId 为 null/空字符串，保持原图片不变
 
     // 如果有上传新图片（通过文件上传）
     if (req.file) {

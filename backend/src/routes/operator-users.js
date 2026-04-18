@@ -9,9 +9,7 @@ router.use(requireRole('operator'));
 
 // 用户管理（静态路由在前）
 router.get('/', operatorUserController.getUsers);
-router.get('/available', operatorUserController.getAvailableUsers); // 获取可添加的用户
-router.post('/add-existing', operatorUserController.addExistingUser);
-router.post('/create-new', operatorUserController.createNewUser);
+router.post('/create-new', operatorUserController.createNewUser); // 创建新用户
 router.get('/trash/list', operatorUserController.getTrashUsers);
 
 // 申请审核
@@ -23,5 +21,6 @@ router.post('/applications/:relationId/reject', operatorUserController.rejectApp
 router.get('/:userId', operatorUserController.getUserDetail);
 router.delete('/:userId', operatorUserController.removeUser);
 router.post('/:userId/restore', operatorUserController.restoreUser);
+router.post('/:userId/reset-password', operatorUserController.resetUserPassword); // 重置密码
 
 module.exports = router;

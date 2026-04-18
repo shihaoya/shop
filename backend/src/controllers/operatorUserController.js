@@ -73,82 +73,15 @@ exports.getAvailableUsers = async (req, res) => {
 };
 
 /**
- * 添加已注册用户
- */
-exports.addExistingUser = async (req, res) => {
-  try {
-    const operatorId = req.user.id;
-    const { userId, username, initialPoints } = req.body;
-
-    // 验证参数
-    if ((!userId && !username) || initialPoints === undefined || initialPoints === null) {
-      return error(res, '用户ID或用户名和初始积分为必填项', 400);
-    }
-
-    if (initialPoints < 0) {
-      return error(res, '初始积分不能为负数', 400);
-    }
-
-    // 查找用户（支持userId或username）
-    let user;
-    if (userId) {
-      user = await User.findOne({
-        where: { id: userId, isDeleted: 0 }
-      });
-    } else {
-      user = await User.findOne({
-        where: { username, isDeleted: 0 }
-      });
-    }
-
-    if (!user) {
-      return error(res, '用户不存在', 404);
-    }
-
-    // 获取租户ID
-    const tenantId = await getOperatorTenantId(operatorId);
-
-    // 检查是否已经关联
-    const existingRelation = await UserTenantRelation.findOne({
-      where: {
-        userId: user.id,
-        tenantId,
-        isDeleted: 0
-      }
-    });
-
-    if (existingRelation) {
-      return error(res, '该用户已经在此租户下', 400);
-    }
-
-    // 创建关联
-    await UserTenantRelation.create({
-      userId: user.id,
-      tenantId,
-      status: 'approved',
-      pointsBalance: initialPoints
-    });
-
-    logger.info(`运营方 ${operatorId} 添加用户 ${user.id} 到租户 ${tenantId}`);
-
-    return success(res, null, '用户添加成功');
-  } catch (err) {
-    const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
-    logger.error(`添加已注册用户失败: ${errorMsg}`);
-    return error(res, errorMsg || '添加失败', 500);
-  }
-};
-
-/**
- * 创建新用户
+ * 创建新用户（简化版：只需要用户名、昵称、积分）
  */
 exports.createNewUser = async (req, res) => {
   try {
     const operatorId = req.user.id;
-    const { username, password, nickname, initialPoints } = req.body;
+    const { username, nickname, initialPoints } = req.body;
 
     // 验证参数
-    if (!username || initialPoints === undefined) {
+    if (!username || initialPoints === undefined || initialPoints === null) {
       return error(res, '用户名和初始积分为必填项', 400);
     }
 
@@ -169,9 +102,9 @@ exports.createNewUser = async (req, res) => {
       return error(res, '用户名已存在', 400);
     }
 
-    // 加密密码（如果未提供则使用默认密码）
-    const pwd = password || '123456';
-    const hashedPassword = await bcrypt.hash(pwd, 10);
+    // 生成随机密码（8位包含字母和数字）
+    const randomPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
     // 创建用户
     const user = await User.create({
@@ -184,7 +117,7 @@ exports.createNewUser = async (req, res) => {
     // 获取租户ID
     const tenantId = await getOperatorTenantId(operatorId);
 
-    // 创建关联
+    // 创建关联（自动approved状态）
     await UserTenantRelation.create({
       userId: user.id,
       tenantId,
@@ -197,7 +130,8 @@ exports.createNewUser = async (req, res) => {
     return success(res, {
       id: user.id,
       username: user.username,
-      nickname: user.nickname
+      nickname: user.nickname,
+      password: randomPassword // 返回随机密码供运营方告知用户
     }, '用户创建成功');
   } catch (err) {
     const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
@@ -413,6 +347,52 @@ exports.getTrashUsers = async (req, res) => {
     const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
     logger.error(`获取回收站用户失败: ${errorMsg}`);
     return error(res, errorMsg || '获取失败', 500);
+  }
+};
+
+/**
+ * 重置用户密码（生成随机密码）
+ */
+exports.resetUserPassword = async (req, res) => {
+  try {
+    const operatorId = req.user.id;
+    const { userId } = req.params;
+
+    // 获取租户ID
+    const tenantId = await getOperatorTenantId(operatorId);
+
+    // 验证用户是否属于当前租户
+    const relation = await UserTenantRelation.findOne({
+      where: {
+        userId,
+        tenantId,
+        isDeleted: 0
+      }
+    });
+
+    if (!relation) {
+      return error(res, '用户不存在或不属于此租户', 404);
+    }
+
+    // 生成随机密码（8位包含字母和数字）
+    const randomPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+    // 更新密码
+    await User.update(
+      { password: hashedPassword },
+      { where: { id: userId } }
+    );
+
+    logger.info(`运营方 ${operatorId} 重置用户 ${userId} 的密码`);
+
+    return success(res, {
+      password: randomPassword
+    }, '密码重置成功');
+  } catch (err) {
+    const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
+    logger.error(`重置密码失败: ${errorMsg}`);
+    return error(res, errorMsg || '重置失败', 500);
   }
 };
 

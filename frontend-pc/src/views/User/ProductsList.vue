@@ -155,11 +155,9 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getTenantProducts, createOrder } from '@/api'
-import { useTenantStore } from '@/store/tenant'
 import { useUserStore } from '@/store/user'
 import dayjs from 'dayjs'
 
-const tenantStore = useTenantStore()
 const userStore = useUserStore()
 const loading = ref(false)
 const submitting = ref(false)
@@ -188,9 +186,9 @@ const exchangeForm = reactive({
   remark: ''
 })
 
-// 当前运营方信息
-const currentTenantId = computed(() => tenantStore.currentTenantId)
-const currentTenantName = computed(() => tenantStore.currentTenantName || '未选择运营方')
+// 当前运营方信息（从用户信息中获取）
+const currentTenantId = computed(() => userStore.userInfo?.currentTenantId || null)
+const currentTenantName = computed(() => userStore.userInfo?.currentTenantName || '加载中...')
 
 // 我的积分
 const myPoints = computed(() => userStore.userInfo?.pointsBalance || 0)
@@ -198,7 +196,15 @@ const myPoints = computed(() => userStore.userInfo?.pointsBalance || 0)
 // 获取商品列表
 const fetchData = async () => {
   if (!currentTenantId.value) {
-    ElMessage.warning('您还未加入任何运营方，请先在“我的运营方”页面申请加入')
+    // 检查用户角色，给出不同的提示
+    const userRole = userStore.userRole
+    
+    if (userRole === 'operator') {
+      ElMessage.warning('运营方账号无法查看商品列表，请使用普通用户账号登录')
+    } else {
+      ElMessage.warning('您还未加入任何店铺，请联系运营方为您创建账号并分配积分')
+    }
+    
     productList.value = []
     pagination.total = 0
     return
@@ -223,7 +229,7 @@ const fetchData = async () => {
   } catch (error) {
     // 只在有权限错误时才显示错误
     if (error.response?.status !== 403) {
-      ElMessage.error('获取商品列表失败')
+      // 响应拦截器已统一处理错误提示
     }
   } finally {
     loading.value = false
@@ -299,7 +305,7 @@ const submitExchange = async () => {
     // 刷新用户信息以更新积分
     await userStore.getUserInfo()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '兑换失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     submitting.value = false
   }
@@ -337,13 +343,17 @@ const getImageUrl = (url) => {
   return strUrl
 }
 
-onMounted(() => {
-  fetchData()
+onMounted(async () => {
+  // 如果用户信息中没有 currentTenantId，尝试重新获取用户信息
+  if (userStore.isLoggedIn && !userStore.userInfo?.currentTenantId && userStore.userRole === 'user') {
+    try {
+      await userStore.getUserInfo()
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+    }
+  }
   
-  // 监听运营方切换
-  tenantStore.$subscribe(() => {
-    fetchData()
-  })
+  fetchData()
 })
 </script>
 

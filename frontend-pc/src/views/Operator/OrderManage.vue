@@ -177,7 +177,7 @@ const fetchOrders = async () => {
       pagination.total = res.data.total
     }
   } catch (error) {
-    ElMessage.error('获取订单列表失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }
@@ -229,8 +229,7 @@ const handleExport = async () => {
     
     ElMessage.success('订单导出成功')
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -243,7 +242,7 @@ const handleViewDetail = async (row) => {
       detailDialogVisible.value = true
     }
   } catch (error) {
-    ElMessage.error('获取订单详情失败')
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -265,9 +264,7 @@ const handleComplete = async (row) => {
       fetchOrders()
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('操作失败')
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -289,9 +286,7 @@ const handleCancel = async (row) => {
       fetchOrders()
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('操作失败')
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 

@@ -248,7 +248,7 @@ const fetchData = async () => {
       pagination.total = res.data.total
     }
   } catch (error) {
-    ElMessage.error('获取用户列表失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }
@@ -330,7 +330,7 @@ const submitAdd = async () => {
       addDialogVisible.value = false
       fetchData()
     } catch (error) {
-      ElMessage.error(error.response?.data?.message || '操作失败')
+      // 响应拦截器已统一处理错误提示
     } finally {
       submitLoading.value = false
     }
@@ -354,7 +354,7 @@ const submitSubtract = async () => {
       subtractDialogVisible.value = false
       fetchData()
     } catch (error) {
-      ElMessage.error(error.response?.data?.message || '操作失败')
+      // 响应拦截器已统一处理错误提示
     } finally {
       submitLoading.value = false
     }
@@ -378,7 +378,7 @@ const submitModify = async () => {
       modifyDialogVisible.value = false
       fetchData()
     } catch (error) {
-      ElMessage.error(error.response?.data?.message || '操作失败')
+      // 响应拦截器已统一处理错误提示
     } finally {
       submitLoading.value = false
     }
@@ -406,7 +406,7 @@ const fetchTransactions = async () => {
       transactionsPagination.total = res.data.total
     }
   } catch (error) {
-    ElMessage.error('获取流水失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     transactionsLoading.value = false
   }

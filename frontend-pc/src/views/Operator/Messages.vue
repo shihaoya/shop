@@ -187,7 +187,7 @@ const fetchMessages = async () => {
       pagination.total = res.data.total
     }
   } catch (error) {
-    ElMessage.error('获取消息列表失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }
@@ -218,7 +218,7 @@ const handleMarkRead = async (row) => {
       messageStore.fetchUnreadCount()
     }
   } catch (error) {
-    ElMessage.error('操作失败')
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -239,9 +239,7 @@ const handleMarkAllRead = async () => {
       messageStore.fetchUnreadCount()
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('操作失败')
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -262,9 +260,7 @@ const handleDelete = async (row) => {
       messageStore.fetchUnreadCount()
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('操作失败')
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 

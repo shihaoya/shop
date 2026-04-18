@@ -241,6 +241,23 @@ class MessageService {
   }
 
   /**
+   * 通知租户审核通过（管理员审核运营方）
+   */
+  static async notifyTenantApproved(userId, tenantName) {
+    try {
+      await this.sendMessage({
+        userId,
+        title: '审核通过通知',
+        content: `恭喜！您的运营方【${tenantName}】已通过平台审核，现在可以开始管理商品和用户了。`,
+        type: 'audit',
+        priority: 'high'
+      });
+    } catch (error) {
+      logger.error(`通知租户审核通过失败: ${error.message}`);
+    }
+  }
+
+  /**
    * 获取用户未读消息数量
    */
   static async getUnreadCount(userId) {

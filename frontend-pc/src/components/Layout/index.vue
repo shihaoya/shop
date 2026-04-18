@@ -44,6 +44,12 @@
         </div>
         
         <div class="header-right">
+          <!-- 运营方：显示店铺名称 -->
+          <div v-if="userStore.userRole === 'operator'" class="tenant-name">
+            <el-icon :size="16"><Shop /></el-icon>
+            <span>{{ currentTenantName || '加载中...' }}</span>
+          </div>
+          
           <!-- 消息通知 -->
           <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="message-badge">
             <el-icon 
@@ -54,22 +60,6 @@
               <Bell />
             </el-icon>
           </el-badge>
-          
-          <!-- 普通用户：运营方切换下拉框 -->
-          <el-select 
-            v-if="userStore.userRole === 'user'" 
-            v-model="selectedTenantId" 
-            placeholder="选择运营方" 
-            @change="handleTenantChange"
-            style="width: 180px; margin-right: 16px"
-          >
-            <el-option
-              v-for="tenant in approvedTenants"
-              :key="tenant.tenant.id"
-              :label="tenant.tenant.name"
-              :value="tenant.tenant.id"
-            />
-          </el-select>
           
           <el-dropdown @command="handleCommand">
             <div class="user-info">
@@ -114,78 +104,23 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
-import { useTenantStore } from '@/store/tenant'
 import { useMessageStore } from '@/store/message'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import ChangePassword from '@/components/Common/ChangePassword.vue'
-import { getMyApplications } from '@/api'
 import { routes } from '@/router'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import { Fold, Expand, Bell, ArrowDown, Lock, SwitchButton } from '@element-plus/icons-vue'
+import { Fold, Expand, Bell, ArrowDown, Lock, SwitchButton, Shop } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const tenantStore = useTenantStore()
 const messageStore = useMessageStore()
 
 const isCollapse = ref(false)
 const showChangePassword = ref(false)
-const selectedTenantId = ref(null)
-const approvedTenants = ref([])
 
 // 使用 message store 中的未读数量
 const unreadCount = computed(() => messageStore.unreadCount)
-
-const activeMenu = computed(() => route.path)
-
-// 动态生成菜单
-const menuItems = computed(() => {
-  const role = userStore.userRole
-  const roleRoute = routes.find(r => r.meta?.role === role && r.children)
-  if (!roleRoute?.children) return []
-  
-  return roleRoute.children
-    .filter(child => child.meta?.title) // 只保留有 title 的路由
-    .map(child => ({
-      path: `${roleRoute.path}/${child.path}`,
-      title: child.meta.title,
-      icon: child.meta.icon || 'Document'
-    }))
-})
-
-// 加载已通过的运营方列表
-const loadApprovedTenants = async () => {
-  if (userStore.userRole !== 'user') return
-  
-  try {
-    const res = await getMyApplications({ page: 1, pageSize: 100 })
-    if (res.code === 200) {
-      approvedTenants.value = res.data.list.filter(item => item.status === 'approved')
-      
-      // 如果当前没有选中运营方，默认选中第一个
-      if (!tenantStore.currentTenantId && approvedTenants.value.length > 0) {
-        const firstTenant = approvedTenants.value[0]
-        selectedTenantId.value = firstTenant.tenant.id
-        tenantStore.setCurrentTenant(firstTenant.tenant.id, firstTenant.tenant)
-      } else {
-        selectedTenantId.value = tenantStore.currentTenantId
-      }
-    }
-  } catch (error) {
-    console.error('加载运营方列表失败:', error)
-  }
-}
-
-// 切换运营方
-const handleTenantChange = (tenantId) => {
-  const tenant = approvedTenants.value.find(item => item.tenant.id === tenantId)
-  if (tenant) {
-    tenantStore.setCurrentTenant(tenantId, tenant.tenant)
-    ElMessage.success(`已切换到：${tenant.tenant.name}`)
-    // 可以在这里触发全局事件或刷新页面数据
-  }
-}
 
 // 显示名称：昵称(用户名)
 const displayName = computed(() => {
@@ -208,8 +143,36 @@ const displayNickname = computed(() => {
   return userInfo.nickname || userInfo.username || '?'
 })
 
+// 运营方店铺名称
+const currentTenantName = computed(() => {
+  if (userStore.userRole === 'operator') {
+    return userStore.userInfo?.currentTenantName || null
+  }
+  return null
+})
+
+const activeMenu = computed(() => route.path)
+
+// 动态生成菜单
+const menuItems = computed(() => {
+  const role = userStore.userRole
+  const roleRoute = routes.find(r => r.meta?.role === role && r.children)
+  if (!roleRoute?.children) return []
+  
+  return roleRoute.children
+    .filter(child => child.meta?.title) // 只保留有 title 的路由
+    .map(child => ({
+      path: `${roleRoute.path}/${child.path}`,
+      title: child.meta.title,
+      icon: child.meta.icon || 'Document'
+    }))
+})
+
 onMounted(() => {
-  loadApprovedTenants()
+  // 获取未读消息数量
+  fetchUnreadCount()
+  // 每30秒刷新一次未读数量
+  setInterval(fetchUnreadCount, 30000)
 })
 
 const toggleCollapse = () => {
@@ -253,17 +216,6 @@ const goToMessages = () => {
   const role = userStore.userRole
   router.push(`/${role}/messages`)
 }
-
-// 初始化
-onMounted(() => {
-  if (userStore.userRole === 'user') {
-    loadApprovedTenants()
-  }
-  // 获取未读消息数量
-  fetchUnreadCount()
-  // 每30秒刷新一次未读数量
-  setInterval(fetchUnreadCount, 30000)
-})
 </script>
 
 <style scoped>
@@ -369,6 +321,19 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.tenant-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
+  color: white;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
 }
 
 .message-badge {

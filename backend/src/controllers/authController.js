@@ -51,7 +51,8 @@ const login = async (req, res) => {
     return success(res, result, '登录成功');
   } catch (err) {
     logger.error(`登录失败: ${err.message}`);
-    return error(res, err.message, 401);
+    // 登录失败是业务错误，不应触发跳转登录页
+    return error(res, err.message, 401, null, 'business');
   }
 };
 
@@ -93,7 +94,8 @@ const refreshToken = async (req, res) => {
     return success(res, result, 'Token刷新成功');
   } catch (err) {
     logger.error(`Token刷新失败: ${err.message}`);
-    return error(res, err.message, 401);
+    // Token刷新失败是业务错误，不应触发跳转登录页
+    return error(res, err.message, 401, null, 'business');
   }
 };
 
@@ -120,33 +122,58 @@ const getMe = async (req, res) => {
       return error(res, '用户不存在', 404);
     }
     
-    // 如果是普通用户，尝试获取当前租户的积分余额
+    // 获取用户的当前租户信息
+    let currentTenantId = null;
+    let currentTenantName = null;
+    let pointsBalance = 0;
+    
     if (user.role === 'user') {
-      const { UserTenantRelation } = require('../models');
-      const tenantId = req.query.tenantId;
+      // 普通用户：从 user_tenant_relations 表查询
+      const { UserTenantRelation, Tenant } = require('../models');
+      const relation = await UserTenantRelation.findOne({
+        where: {
+          userId,
+          status: 'approved',
+          isDeleted: 0
+        },
+        include: [
+          {
+            model: Tenant,
+            as: 'tenant',
+            attributes: ['id', 'name']
+          }
+        ]
+      });
       
-      if (tenantId) {
-        const relation = await UserTenantRelation.findOne({
-          where: {
-            userId,
-            tenantId,
-            status: 'approved',
-            isDeleted: 0
-          },
-          attributes: ['pointsBalance']
-        });
-        
-        if (relation) {
-          user.dataValues.pointsBalance = relation.pointsBalance;
-        } else {
-          user.dataValues.pointsBalance = 0;
-        }
-      } else {
-        user.dataValues.pointsBalance = 0;
+      if (relation && relation.tenant) {
+        currentTenantId = relation.tenant.id;
+        currentTenantName = relation.tenant.name;
+        pointsBalance = relation.pointsBalance;
+      }
+    } else if (user.role === 'operator') {
+      // 运营方：从 tenants 表查询
+      const { Tenant } = require('../models');
+      const tenant = await Tenant.findOne({
+        where: {
+          userId,
+          isDeleted: 0
+        },
+        attributes: ['id', 'name']
+      });
+      
+      if (tenant) {
+        currentTenantId = tenant.id;
+        currentTenantName = tenant.name;
       }
     }
     
-    return success(res, user, '获取成功');
+    // 添加租户信息到返回数据
+    const userData = user.toJSON();
+    userData.currentTenantId = currentTenantId;
+    userData.currentTenantName = currentTenantName;
+    userData.pointsBalance = pointsBalance;
+    
+    return success(res, userData, '获取成功');
   } catch (err) {
     logger.error(`获取用户信息失败: ${err.message}`);
     return error(res, err.message, 500);

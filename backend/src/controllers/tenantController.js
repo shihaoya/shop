@@ -1,4 +1,4 @@
-const { Tenant, UserTenantRelation, Product } = require('../models');
+const { Tenant, UserTenantRelation, Product, Upload } = require('../models');
 const { Op } = require('sequelize');
 const { logger } = require('../middlewares/logger');
 const { success, error } = require('../utils/response');
@@ -90,23 +90,62 @@ exports.getTenants = async (req, res) => {
 exports.getMyTenantStatus = async (req, res) => {
   try {
     const userId = req.user.id;
+    const userRole = req.user.role;
     
-    const tenant = await Tenant.findOne({
-      where: { userId, isDeleted: 0 },
-      include: [
-        {
-          model: require('../models').User,
-          as: 'user',
-          attributes: ['id', 'username', 'nickname']
-        }
-      ]
-    });
+    // 如果是运营方，查询 tenants 表
+    if (userRole === 'operator') {
+      const tenant = await Tenant.findOne({
+        where: { userId, isDeleted: 0 },
+        include: [
+          {
+            model: require('../models').User,
+            as: 'user',
+            attributes: ['id', 'username', 'nickname']
+          }
+        ]
+      });
 
-    if (!tenant) {
-      return error(res, '租户不存在', 404);
+      if (!tenant) {
+        return error(res, '租户不存在', 404);
+      }
+
+      return success(res, tenant);
+    } 
+    // 如果是普通用户，查询 user_tenant_relations 表
+    else if (userRole === 'user') {
+      const { UserTenantRelation, Tenant } = require('../models');
+      
+      const relation = await UserTenantRelation.findOne({
+        where: { 
+          userId, 
+          status: 'approved',
+          isDeleted: 0 
+        },
+        include: [
+          {
+            model: Tenant,
+            as: 'tenant',
+            attributes: ['id', 'name', 'description']
+          }
+        ]
+      });
+
+      if (!relation) {
+        return error(res, '您还未加入任何店铺', 404);
+      }
+
+      return success(res, {
+        id: relation.id,
+        userId: relation.userId,
+        tenantId: relation.tenantId,
+        status: relation.status,
+        pointsBalance: relation.pointsBalance,
+        createdAt: relation.createdAt,
+        tenant: relation.tenant
+      });
     }
-
-    return success(res, tenant);
+    
+    return error(res, '无效的用户角色', 400);
   } catch (err) {
     const errorMsg = err.original ? err.original.message : (err.message || '未知错误');
     logger.error(`获取租户状态失败: ${errorMsg}`);
@@ -239,19 +278,40 @@ exports.getTenantProducts = async (req, res) => {
       where.category = category;
     }
 
-    // 查询该租户的上架商品
+    // 查询该租户的上架商品，并关联图片信息
     const { count, rows } = await Product.findAndCountAll({
       where,
+      include: [
+        {
+          model: Upload,
+          as: 'imageFile',
+          attributes: ['id', 'fileName'],
+          required: false
+        }
+      ],
       order: [['createdAt', 'DESC']],
       limit: parseInt(pageSize),
       offset: offset
+    });
+
+    // 处理返回数据，添加图片URL
+    const productsWithImage = rows.map(product => {
+      const productData = product.toJSON();
+      if (productData.imageFile) {
+        // 使用 fileName 构建相对路径URL
+        productData.imageUrl = `/uploads/${productData.imageFile.fileName}`;
+      } else {
+        productData.imageUrl = null;
+      }
+      delete productData.imageFile; // 删除关联对象，只保留imageUrl
+      return productData;
     });
 
     return res.json({
       code: 200,
       message: 'success',
       data: {
-        list: rows,
+        list: productsWithImage,
         total: count,
         page: parseInt(page),
         pageSize: parseInt(pageSize)

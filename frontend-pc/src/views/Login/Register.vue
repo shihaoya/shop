@@ -17,12 +17,8 @@
         :rules="rules"
         class="register-form"
       >
-        <el-form-item prop="role">
-          <el-radio-group v-model="registerForm.role" class="role-selector">
-            <el-radio-button label="user">普通用户</el-radio-button>
-            <el-radio-button label="operator">运营方</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
+        <!-- 隐藏的角色字段，固定为operator -->
+        <input type="hidden" v-model="registerForm.role" />
 
         <el-form-item prop="username">
           <el-input
@@ -115,7 +111,7 @@ const registerForm = reactive({
   nickname: '',
   password: '',
   confirmPassword: '',
-  role: 'user',
+  role: 'operator', // 固定为运营方
   description: ''
 })
 
@@ -144,16 +140,8 @@ const rules = {
     { validator: validatePass, trigger: 'blur' }
   ],
   description: [
-    { 
-      validator: (rule, value, callback) => {
-        if (registerForm.role === 'operator' && !value) {
-          callback(new Error('运营方必须填写运营说明'))
-        } else {
-          callback()
-        }
-      },
-      trigger: 'blur'
-    }
+    { required: true, message: '请填写运营说明', trigger: 'blur' },
+    { min: 10, message: '运营说明至少10个字符', trigger: 'blur' }
   ]
 }
 
@@ -167,7 +155,6 @@ const handleRegister = async () => {
         const { confirmPassword, ...params } = registerForm
         await register(params)
         
-        ElMessage.success('注册成功，请登录')
         router.push('/login')
       } catch (error) {
         console.error('注册失败:', error)

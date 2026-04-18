@@ -9,10 +9,6 @@
 
       <!-- 操作按钮 -->
       <div v-if="isApproved" style="margin-bottom: 20px;">
-        <el-button type="primary" @click="showAddExistingDialog">
-          <el-icon><Plus /></el-icon>
-          添加已注册用户
-        </el-button>
         <el-button type="success" @click="showCreateNewDialog">
           <el-icon><UserFilled /></el-icon>
           创建新用户
@@ -68,7 +64,7 @@
             {{ formatTime(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleViewDetail(row)">详情</el-button>
             <el-button 
@@ -98,6 +94,7 @@
             >
               撤销拒绝
             </el-button>
+            <el-button link type="warning" size="small" @click="handleResetPassword(row)">重置密码</el-button>
             <el-button link type="danger" size="small" @click="handleRemove(row)">移除</el-button>
           </template>
         </el-table-column>
@@ -116,49 +113,11 @@
       />
     </el-card>
 
-    <!-- 添加已注册用户对话框 -->
-    <el-dialog v-model="addExistingVisible" title="添加已注册用户" width="600px" :close-on-click-modal="true" :close-on-press-escape="false">
-      <el-form ref="addExistingFormRef" :model="addExistingForm" :rules="addExistingRules" label-width="100px">
-        <el-form-item label="选择用户" prop="userId">
-          <el-select
-            v-model="addExistingForm.userId"
-            filterable
-            remote
-            reserve-keyword
-            placeholder="请输入用户名搜索"
-            :remote-method="searchUsers"
-            :loading="userSearchLoading"
-            style="width: 100%"
-          >
-            <el-option
-              v-for="user in availableUsers"
-              :key="user.id"
-              :label="`${user.username}${user.nickname ? '(' + user.nickname + ')' : ''}`"
-              :value="user.id"
-            >
-              <span style="float: left">{{ user.username }}</span>
-              <span style="float: right; color: #8492a6; font-size: 13px">{{ user.nickname || '' }}</span>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="初始积分" prop="initialPoints">
-          <el-input-number v-model="addExistingForm.initialPoints" :min="0" style="width: 100%" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="addExistingVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitAddExisting" :loading="submitLoading">确定</el-button>
-      </template>
-    </el-dialog>
-
     <!-- 创建新用户对话框 -->
     <el-dialog v-model="createNewVisible" title="创建新用户" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
       <el-form ref="createNewFormRef" :model="createNewForm" :rules="createNewRules" label-width="100px">
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="createNewForm.username" placeholder="3-50个字符" />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="createNewForm.password" type="password" placeholder="留空则使用默认密码123456" show-password />
+          <el-input v-model="createNewForm.username" placeholder="3-50个字符，系统唯一" />
         </el-form-item>
         <el-form-item label="昵称" prop="nickname">
           <el-input v-model="createNewForm.nickname" placeholder="可选" />
@@ -209,25 +168,22 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, UserFilled } from '@element-plus/icons-vue'
+import { UserFilled } from '@element-plus/icons-vue'
 import { 
   getOperatorUsers, 
-  addExistingUser, 
   createNewUser, 
   removeUser,
   approveApplication,
   rejectApplication,
-  getAvailableUsers,
+  resetUserPassword,
   getMyTenantStatus
 } from '@/api'
 import dayjs from 'dayjs'
 
 const loading = ref(false)
 const submitLoading = ref(false)
-const addExistingVisible = ref(false)
 const createNewVisible = ref(false)
 const auditVisible = ref(false)
-const addExistingFormRef = ref(null)
 const createNewFormRef = ref(null)
 const auditFormRef = ref(null)
 
@@ -247,18 +203,8 @@ const currentAuditUser = ref(null)
 const auditAction = ref('approve') // approve, reject, revoke
 const isApproved = ref(false) // 运营方审核状态
 
-// 用户搜索相关
-const availableUsers = ref([])
-const userSearchLoading = ref(false)
-
-const addExistingForm = reactive({
-  userId: null,
-  initialPoints: 0
-})
-
 const createNewForm = reactive({
   username: '',
-  password: '',
   nickname: '',
   initialPoints: 0
 })
@@ -266,11 +212,6 @@ const createNewForm = reactive({
 const auditForm = reactive({
   reason: ''
 })
-
-const addExistingRules = {
-  userId: [{ required: true, message: '请选择用户', trigger: 'change' }],
-  initialPoints: [{ required: true, message: '请输入初始积分', trigger: 'blur' }]
-}
 
 const createNewRules = {
   username: [
@@ -311,7 +252,7 @@ const fetchData = async () => {
       pagination.total = res.data.total
     }
   } catch (error) {
-    ElMessage.error('获取用户列表失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }
@@ -341,75 +282,14 @@ const handlePageChange = (page) => {
   fetchData()
 }
 
-// 显示添加已注册用户对话框
-const showAddExistingDialog = () => {
-  Object.assign(addExistingForm, { userId: null, initialPoints: 0 })
-  availableUsers.value = []
-  addExistingVisible.value = true
-}
-
-// 远程搜索用户
-const searchUsers = async (query) => {
-  if (!query || query.trim() === '') {
-    availableUsers.value = []
-    return
-  }
-  
-  userSearchLoading.value = true
-  try {
-    const res = await getAvailableUsers({ keyword: query, pageSize: 20 })
-    if (res.code === 200) {
-      // 过滤掉已经在本租户中的用户
-      const existingUserIds = tableData.value.map(u => u.id)
-      availableUsers.value = res.data.list.filter(user => !existingUserIds.includes(user.id))
-    }
-  } catch (error) {
-    ElMessage.error('搜索用户失败')
-  } finally {
-    userSearchLoading.value = false
-  }
-}
-
 // 显示创建新用户对话框
 const showCreateNewDialog = () => {
   Object.assign(createNewForm, {
     username: '',
-    password: '',
     nickname: '',
     initialPoints: 0
   })
   createNewVisible.value = true
-}
-
-// 提交添加已注册用户
-const submitAddExisting = async () => {
-  if (!addExistingFormRef.value) return
-  
-  await addExistingFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    
-    submitLoading.value = true
-    try {
-      // 获取选中的用户信息
-      const selectedUser = availableUsers.value.find(u => u.id === addExistingForm.userId)
-      if (!selectedUser) {
-        ElMessage.error('请选择有效的用户')
-        return
-      }
-      
-      await addExistingUser({
-        userId: addExistingForm.userId,
-        initialPoints: addExistingForm.initialPoints
-      })
-      ElMessage.success('添加成功')
-      addExistingVisible.value = false
-      fetchData()
-    } catch (error) {
-      ElMessage.error(error.response?.data?.message || '添加失败')
-    } finally {
-      submitLoading.value = false
-    }
-  })
 }
 
 // 提交创建新用户
@@ -421,16 +301,38 @@ const submitCreateNew = async () => {
     
     submitLoading.value = true
     try {
-      await createNewUser(createNewForm)
-      ElMessage.success('创建成功')
+      const res = await createNewUser(createNewForm)
+      ElMessage.success(`创建成功！用户密码为：${res.data.password}，请妥善保管并告知用户`)
       createNewVisible.value = false
       fetchData()
     } catch (error) {
-      ElMessage.error(error.response?.data?.message || '创建失败')
+      // 响应拦截器已统一处理错误提示
     } finally {
       submitLoading.value = false
     }
   })
+}
+
+// 重置密码
+const handleResetPassword = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要重置用户 ${row.username} 的密码吗？`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    const res = await resetUserPassword(row.userId || row.user?.id)
+    ElMessage.success(`密码重置成功！新密码为：${res.data.password}，请妥善保管并告知用户`)
+  } catch (error) {
+    if (error !== 'cancel') {
+      // 响应拦截器已统一处理错误提示
+    }
+  }
 }
 
 // 查看详情
@@ -468,7 +370,7 @@ const submitAudit = async () => {
         auditVisible.value = false
         fetchData()
       } catch (error) {
-        ElMessage.error(error.response?.data?.message || '操作失败')
+        // 响应拦截器已统一处理错误提示
       } finally {
         submitLoading.value = false
       }
@@ -481,7 +383,7 @@ const submitAudit = async () => {
       auditVisible.value = false
       fetchData()
     } catch (error) {
-      ElMessage.error(error.response?.data?.message || '操作失败')
+      // 响应拦截器已统一处理错误提示
     } finally {
       submitLoading.value = false
     }
@@ -501,9 +403,7 @@ const handleRemove = async (row) => {
     ElMessage.success('移除成功')
     fetchData()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.response?.data?.message || '移除失败')
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 

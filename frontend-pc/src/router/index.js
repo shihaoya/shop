@@ -128,12 +128,6 @@ const routes = [
     meta: { requiresAuth: true, role: 'user' },
     children: [
       {
-        path: 'tenants',
-        name: 'UserTenants',
-        component: () => import('@/views/User/Tenants.vue'),
-        meta: { title: '运营方列表', icon: 'HomeFilled' }
-      },
-      {
         path: 'products',
         name: 'UserProducts',
         component: () => import('@/views/User/ProductsList.vue'),

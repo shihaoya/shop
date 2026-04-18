@@ -152,8 +152,7 @@ const loadTenantStatus = async () => {
     const res = await getMyTenantStatus()
     tenant.value = res.data
   } catch (error) {
-    console.error('加载租户状态失败:', error)
-    ElMessage.error('加载租户状态失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }

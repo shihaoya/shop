@@ -158,8 +158,7 @@ const loadData = async () => {
     productList.value = res.data.list
     total.value = res.data.total
   } catch (error) {
-    console.error('加载数据失败:', error)
-    ElMessage.error('加载数据失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }

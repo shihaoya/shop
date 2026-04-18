@@ -166,7 +166,7 @@ const fetchData = async () => {
       await loadMyApplicationsStatus()
     }
   } catch (error) {
-    ElMessage.error('获取运营方列表失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }
@@ -235,7 +235,7 @@ const submitApply = async () => {
     applyVisible.value = false
     fetchData()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '申请失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     submitting.value = false
   }

@@ -160,8 +160,7 @@ const loadData = async () => {
     orderList.value = res.data.list
     total.value = res.data.total
   } catch (error) {
-    console.error('加载订单失败:', error)
-    ElMessage.error('加载订单失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }
@@ -186,8 +185,7 @@ const handleViewDetail = async (id) => {
     orderDetail.value = res.data
     detailVisible.value = true
   } catch (error) {
-    console.error('获取订单详情失败:', error)
-    ElMessage.error('获取订单详情失败')
+    // 响应拦截器已统一处理错误提示
   }
 }
 
@@ -204,10 +202,7 @@ const handleCancel = async (id) => {
     ElMessage.success('订单已取消')
     loadData()
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('取消订单失败:', error)
-      ElMessage.error('取消订单失败')
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 

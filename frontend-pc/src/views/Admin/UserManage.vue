@@ -463,9 +463,7 @@ const handleDelete = async (user) => {
     ElMessage.success('删除成功')
     loadData()
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.response?.data?.message || '删除失败')
-    }
+    // 响应拦截器已统一处理错误提示
   }
 }
 

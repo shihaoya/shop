@@ -127,7 +127,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getProducts } from '@/api/index'
+import { getProducts, getOperatorDashboardStats } from '@/api/index'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 import {
@@ -157,20 +157,15 @@ const formatDate = (date) => {
 const loadDashboardData = async () => {
   loading.value = true
   try {
-    // 获取商品列表
-    const res = await getProducts({ page: 1, pageSize: 5 })
-    recentProducts.value = res.data.list
-    stats.value.totalProducts = res.data.total
+    // 获取统计数据
+    const statsRes = await getOperatorDashboardStats()
+    stats.value = statsRes.data
     
-    // 计算在售商品数量
-    stats.value.onlineProducts = res.data.list.filter(p => p.status === 1).length
-    
-    // TODO: 加载其他统计数据
-    stats.value.totalUsers = 0
-    stats.value.totalPoints = 0
+    // 获取最近商品列表
+    const productsRes = await getProducts({ page: 1, pageSize: 5 })
+    recentProducts.value = productsRes.data.list
   } catch (error) {
-    console.error('加载数据失败:', error)
-    ElMessage.error('加载数据失败')
+    // 响应拦截器已统一处理错误提示
   } finally {
     loading.value = false
   }
