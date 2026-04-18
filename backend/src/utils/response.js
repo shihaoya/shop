@@ -1,9 +1,11 @@
 /**
  * 统一响应格式
+ * 规范：所有请求成功到达服务器都返回 HTTP 200
+ * 业务错误通过 code 字段区分
  */
 
 const success = (res, data = null, message = '操作成功') => {
-  return res.json({
+  return res.status(200).json({
     code: 200,
     message,
     data
@@ -11,7 +13,8 @@ const success = (res, data = null, message = '操作成功') => {
 };
 
 const error = (res, message = '操作失败', code = 400, data = null, type = 'business') => {
-  return res.status(code).json({
+  // 所有业务错误都返回 HTTP 200，通过 code 字段区分
+  return res.status(200).json({
     code,
     message,
     data,

@@ -35,14 +35,41 @@ request.interceptors.response.use(
     
     const res = response.data
     
+    // 检查业务 code
     if (res.code === 200) {
       return res
     } else {
       // 业务错误：如果配置了 skipErrorToast，则不自动显示错误
       const skipErrorToast = response.config?.skipErrorToast
-      if (!skipErrorToast) {
-        ElMessage.error(res.message || '请求失败')
+      
+      // 特殊处理认证错误（Token 过期或无效）
+      if (res.code === 401 && res.type === 'auth') {
+        if (!isHandlingAuthError) {
+          isHandlingAuthError = true
+          ElMessage.error(res.message || '登录已过期，请重新登录')
+          
+          // 清除所有本地存储
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          localStorage.removeItem('currentTenantId')
+          localStorage.removeItem('currentTenantInfo')
+          
+          // 延迟跳转，确保用户看到提示
+          setTimeout(() => {
+            isHandlingAuthError = false
+            // 如果当前不在登录页，才跳转
+            if (router.currentRoute.value.path !== '/login') {
+              router.push('/login')
+            }
+          }, 500)
+        }
+      } else {
+        // 其他业务错误，仅显示提示
+        if (!skipErrorToast) {
+          ElMessage.error(res.message || '请求失败')
+        }
       }
+      
       // 保留完整的错误数据，包括 errors 数组
       const err = new Error(res.message || '请求失败')
       err.response = response
@@ -58,61 +85,24 @@ request.interceptors.response.use(
     // 如果请求配置了 skipErrorToast，则不自动显示错误
     const skipErrorToast = error.config?.skipErrorToast
     
+    // 只有真正的网络错误或服务器崩溃才进入这里
     if (error.response) {
+      // HTTP 状态码非 2xx 的情况（如服务器崩溃、网络错误）
       const { status, data } = error.response
       console.error('HTTP Status:', status, 'Data:', data)
-      const errorType = data?.type || 'business'  // 默认为业务错误
       
-      switch (status) {
-        case 401:
-          // 根据错误类型区分处理
-          if (errorType === 'auth') {
-            // 认证错误：Token 过期或无效，需要跳转登录页
-            if (!isHandlingAuthError) {
-              isHandlingAuthError = true
-              ElMessage.error(data?.message || '登录已过期，请重新登录')
-              
-              // 清除所有本地存储
-              localStorage.removeItem('token')
-              localStorage.removeItem('user')
-              localStorage.removeItem('currentTenantId')
-              localStorage.removeItem('currentTenantInfo')
-              
-              // 延迟跳转，确保用户看到提示
-              setTimeout(() => {
-                isHandlingAuthError = false
-                // 如果当前不在登录页，才跳转
-                if (router.currentRoute.value.path !== '/login') {
-                  router.push('/login')
-                }
-              }, 500)
-            }
-          } else {
-            // 业务错误：如登录失败、密码错误等，仅显示提示
-            if (!skipErrorToast) {
-              ElMessage.error(data?.message || '操作失败')
-            }
-          }
-          break
-        case 403:
-          if (!skipErrorToast) {
-            ElMessage.error('权限不足')
-          }
-          break
-        case 404:
-          if (!skipErrorToast) {
-            ElMessage.error('请求的资源不存在')
-          }
-          break
-        case 500:
-          if (!skipErrorToast) {
-            ElMessage.error('服务器错误')
-          }
-          break
-        default:
-          if (!skipErrorToast) {
-            ElMessage.error(data?.message || '请求失败')
-          }
+      if (!skipErrorToast) {
+        if (status === 500) {
+          ElMessage.error('服务器内部错误')
+        } else if (status === 502 || status === 503 || status === 504) {
+          ElMessage.error('服务不可用，请稍后重试')
+        } else {
+          ElMessage.error(data?.message || '网络错误')
+        }
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      if (!skipErrorToast) {
+        ElMessage.error('请求超时，请检查网络连接')
       }
     } else {
       if (!skipErrorToast) {
