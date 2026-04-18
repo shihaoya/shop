@@ -200,6 +200,41 @@ export function rejectApplication(relationId, data) {
   })
 }
 
+// 下载导入模板
+export function downloadUserTemplate() {
+  return request({
+    url: '/operator/users/template',
+    method: 'get',
+    responseType: 'blob'
+  })
+}
+
+// 导入用户
+export function importUsers(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/operator/users/import',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    // 自定义标记：让响应拦截器不自动显示错误
+    skipErrorToast: true
+  })
+}
+
+// 下载导入结果（Excel）
+export function downloadImportResult(users) {
+  return request({
+    url: '/operator/users/download-result',
+    method: 'post',
+    data: { users },
+    responseType: 'blob'
+  })
+}
+
 export function addPoints(userId, data) {
   return request({
     url: `/operator/points/${userId}/add`,

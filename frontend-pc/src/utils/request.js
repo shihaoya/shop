@@ -28,21 +28,39 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
+    // 如果是 Blob 类型（文件下载），直接返回原始响应
+    if (response.config.responseType === 'blob') {
+      return response.data
+    }
+    
     const res = response.data
     
     if (res.code === 200) {
       return res
     } else {
-      // 业务错误：显示错误提示
-      ElMessage.error(res.message || '请求失败')
-      return Promise.reject(new Error(res.message || '请求失败'))
+      // 业务错误：如果配置了 skipErrorToast，则不自动显示错误
+      const skipErrorToast = response.config?.skipErrorToast
+      if (!skipErrorToast) {
+        ElMessage.error(res.message || '请求失败')
+      }
+      // 保留完整的错误数据，包括 errors 数组
+      const err = new Error(res.message || '请求失败')
+      err.response = response
+      err.config = response.config
+      return Promise.reject(err)
     }
   },
   error => {
     console.error('响应错误:', error)
+    console.error('error.response:', error.response)
+    console.error('error.response.data:', error.response?.data)
+    
+    // 如果请求配置了 skipErrorToast，则不自动显示错误
+    const skipErrorToast = error.config?.skipErrorToast
     
     if (error.response) {
       const { status, data } = error.response
+      console.error('HTTP Status:', status, 'Data:', data)
       const errorType = data?.type || 'business'  // 默认为业务错误
       
       switch (status) {
@@ -71,23 +89,35 @@ request.interceptors.response.use(
             }
           } else {
             // 业务错误：如登录失败、密码错误等，仅显示提示
-            ElMessage.error(data?.message || '操作失败')
+            if (!skipErrorToast) {
+              ElMessage.error(data?.message || '操作失败')
+            }
           }
           break
         case 403:
-          ElMessage.error('权限不足')
+          if (!skipErrorToast) {
+            ElMessage.error('权限不足')
+          }
           break
         case 404:
-          ElMessage.error('请求的资源不存在')
+          if (!skipErrorToast) {
+            ElMessage.error('请求的资源不存在')
+          }
           break
         case 500:
-          ElMessage.error('服务器错误')
+          if (!skipErrorToast) {
+            ElMessage.error('服务器错误')
+          }
           break
         default:
-          ElMessage.error(data?.message || '请求失败')
+          if (!skipErrorToast) {
+            ElMessage.error(data?.message || '请求失败')
+          }
       }
     } else {
-      ElMessage.error('网络错误，请检查网络连接')
+      if (!skipErrorToast) {
+        ElMessage.error('网络错误，请检查网络连接')
+      }
     }
     
     return Promise.reject(error)

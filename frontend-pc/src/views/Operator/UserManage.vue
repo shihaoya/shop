@@ -13,6 +13,23 @@
           <el-icon><UserFilled /></el-icon>
           创建新用户
         </el-button>
+        <el-button type="primary" @click="handleDownloadTemplate">
+          <el-icon><Download /></el-icon>
+          下载模板
+        </el-button>
+        <el-upload
+          ref="uploadRef"
+          :http-request="handleUploadRequest"
+          :before-upload="beforeUpload"
+          :show-file-list="false"
+          accept=".xlsx,.xls,.csv"
+          style="display: inline-block; margin-left: 10px;"
+        >
+          <el-button type="warning">
+            <el-icon><Upload /></el-icon>
+            导入用户
+          </el-button>
+        </el-upload>
       </div>
       <el-alert
         v-else
@@ -64,9 +81,8 @@
             {{ formatTime(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="300" fixed="right">
+        <el-table-column label="操作" width="350" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleViewDetail(row)">详情</el-button>
             <el-button 
               v-if="row.status === 'pending'"
               link 
@@ -94,6 +110,9 @@
             >
               撤销拒绝
             </el-button>
+            <el-button link type="primary" size="small" @click="showAddPointsDialog(row)">增加积分</el-button>
+            <el-button link type="warning" size="small" @click="showSubtractPointsDialog(row)">减少积分</el-button>
+            <el-button link type="info" size="small" @click="viewTransactions(row)">流水</el-button>
             <el-button link type="warning" size="small" @click="handleResetPassword(row)">重置密码</el-button>
             <el-button link type="danger" size="small" @click="handleRemove(row)">移除</el-button>
           </template>
@@ -162,13 +181,171 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 增加积分对话框 -->
+    <el-dialog v-model="addPointsVisible" title="增加积分" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
+      <el-form ref="addPointsFormRef" :model="addPointsForm" :rules="pointsRules" label-width="100px">
+        <el-form-item label="用户名">
+          <el-input v-model="addPointsForm.username" disabled />
+        </el-form-item>
+        <el-form-item label="当前余额">
+          <el-tag type="success">{{ addPointsForm.currentBalance }}</el-tag>
+        </el-form-item>
+        <el-form-item label="增加积分" prop="points">
+          <el-input-number v-model="addPointsForm.points" :min="1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="原因" prop="reason">
+          <el-input v-model="addPointsForm.reason" type="textarea" :rows="3" placeholder="请输入原因" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="addPointsVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitAddPoints" :loading="submitLoading">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 减少积分对话框 -->
+    <el-dialog v-model="subtractPointsVisible" title="减少积分" width="500px" :close-on-click-modal="true" :close-on-press-escape="false">
+      <el-form ref="subtractPointsFormRef" :model="subtractPointsForm" :rules="pointsRules" label-width="100px">
+        <el-form-item label="用户名">
+          <el-input v-model="subtractPointsForm.username" disabled />
+        </el-form-item>
+        <el-form-item label="当前余额">
+          <el-tag type="success">{{ subtractPointsForm.currentBalance }}</el-tag>
+        </el-form-item>
+        <el-form-item label="减少积分" prop="points">
+          <el-input-number v-model="subtractPointsForm.points" :min="1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="原因" prop="reason">
+          <el-input v-model="subtractPointsForm.reason" type="textarea" :rows="3" placeholder="请输入原因" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="subtractPointsVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitSubtractPoints" :loading="submitLoading">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 积分流水对话框 -->
+    <el-dialog v-model="transactionsVisible" title="积分流水" width="900px" :close-on-click-modal="true" :close-on-press-escape="false">
+      <el-table :data="transactionsData" v-loading="transactionsLoading" border stripe max-height="400">
+        <el-table-column prop="transactionType" label="类型" width="120">
+          <template #default="{ row }">
+            <el-tag :type="getTransactionTypeTag(row.transactionType)">
+              {{ getTransactionTypeText(row.transactionType) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="pointsChange" label="变动数量" width="120">
+          <template #default="{ row }">
+            <span :style="{ color: row.pointsChange > 0 ? 'green' : 'red' }">
+              {{ row.pointsChange > 0 ? '+' : '' }}{{ row.pointsChange }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="balanceAfter" label="变动后余额" width="120" />
+        <el-table-column prop="reason" label="原因" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="operatorName" label="操作人" width="120" />
+        <el-table-column prop="createdAt" label="时间" width="180">
+          <template #default="{ row }">
+            {{ formatTime(row.createdAt) }}
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        :current-page="transactionsPagination.page"
+        :page-size="transactionsPagination.pageSize"
+        :total="transactionsPagination.total"
+        layout="total, prev, pager, next"
+        @current-change="handleTransactionsPageChange"
+        style="margin-top: 20px; justify-content: flex-end"
+      />
+    </el-dialog>
+
+    <!-- 重置密码结果对话框 -->
+    <el-dialog v-model="resetPasswordResultVisible" title="密码重置成功" width="600px" :close-on-click-modal="true" :close-on-press-escape="false">
+      <el-alert type="success" :closable="false" style="margin-bottom: 20px;">
+        <template #title>
+          用户 <strong>{{ resetPasswordResult?.username }}</strong> 的密码已重置
+        </template>
+      </el-alert>
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="用户名">{{ resetPasswordResult?.username }}</el-descriptions-item>
+        <el-descriptions-item label="昵称">{{ resetPasswordResult?.nickname || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="新密码">
+          <el-tag type="danger" size="large">{{ resetPasswordResult?.password }}</el-tag>
+        </el-descriptions-item>
+      </el-descriptions>
+      <el-alert type="warning" :closable="false" style="margin-top: 20px;">
+        <template #title>
+          请妥善保管此密码，并告知用户。关闭后将无法再次查看！
+        </template>
+      </el-alert>
+      <template #footer>
+        <el-button @click="resetPasswordResultVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 导入结果对话框 -->
+    <el-dialog v-model="importResultVisible" title="导入结果" width="800px" :close-on-click-modal="true" :close-on-press-escape="false">
+      <el-alert type="success" :closable="false" style="margin-bottom: 20px;">
+        <template #title>
+          导入成功！共导入 {{ importResult.count }} 个用户
+        </template>
+      </el-alert>
+      
+      <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: bold;">导入的用户列表：</span>
+        <el-button type="primary" size="small" @click="downloadImportResult">
+          <el-icon><Download /></el-icon>
+          下载结果
+        </el-button>
+      </div>
+      <el-table :data="importResult.users" border stripe max-height="400">
+        <el-table-column prop="username" label="用户名" width="150" />
+        <el-table-column prop="nickname" label="昵称" />
+        <el-table-column label="密码" width="150">
+          <template #default="{ row }">
+            <el-tag type="danger">{{ row.password }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="pointsBalance" label="初始积分" width="100" />
+      </el-table>
+
+      <template #footer>
+        <el-button @click="importResultVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 导入失败对话框 -->
+    <el-dialog v-model="importErrorVisible" title="导入失败" width="700px" :close-on-click-modal="false" :close-on-press-escape="false">
+      <el-alert type="error" :closable="false" style="margin-bottom: 20px;">
+        <template #title>
+          {{ importError.message }}
+        </template>
+      </el-alert>
+      
+      <el-table :data="importError.errors" border stripe max-height="400">
+        <el-table-column prop="row" label="行号" width="80" align="center" />
+        <el-table-column prop="username" label="用户名" width="150" />
+        <el-table-column prop="error" label="错误原因" min-width="200">
+          <template #default="{ row }">
+            <span style="color: #f56c6c;">{{ row.error }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <template #footer>
+        <el-button type="primary" @click="importErrorVisible = false">知道了</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, h } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { UserFilled } from '@element-plus/icons-vue'
+import { UserFilled, Download, Upload } from '@element-plus/icons-vue'
 import { 
   getOperatorUsers, 
   createNewUser, 
@@ -176,7 +353,12 @@ import {
   approveApplication,
   rejectApplication,
   resetUserPassword,
-  getMyTenantStatus
+  getMyTenantStatus,
+  addPoints,
+  subtractPoints,
+  getPointTransactions,
+  importUsers,
+  downloadUserTemplate
 } from '@/api'
 import dayjs from 'dayjs'
 
@@ -184,8 +366,16 @@ const loading = ref(false)
 const submitLoading = ref(false)
 const createNewVisible = ref(false)
 const auditVisible = ref(false)
+const addPointsVisible = ref(false)
+const subtractPointsVisible = ref(false)
+const transactionsVisible = ref(false)
+const resetPasswordResultVisible = ref(false)
+const importResultVisible = ref(false)
 const createNewFormRef = ref(null)
 const auditFormRef = ref(null)
+const addPointsFormRef = ref(null)
+const subtractPointsFormRef = ref(null)
+const uploadRef = ref(null)
 
 const searchForm = reactive({
   keyword: '',
@@ -202,6 +392,27 @@ const tableData = ref([])
 const currentAuditUser = ref(null)
 const auditAction = ref('approve') // approve, reject, revoke
 const isApproved = ref(false) // 运营方审核状态
+const resetPasswordResult = ref(null)
+const transactionsData = ref([])
+const transactionsLoading = ref(false)
+const transactionsPagination = reactive({
+  page: 1,
+  pageSize: 20,
+  total: 0
+})
+const currentPointsUser = ref(null)
+
+const importResult = reactive({
+  count: 0,
+  users: []
+})
+
+// 导入失败对话框
+const importErrorVisible = ref(false)
+const importError = reactive({
+  message: '',
+  errors: []
+})
 
 const createNewForm = reactive({
   username: '',
@@ -210,6 +421,22 @@ const createNewForm = reactive({
 })
 
 const auditForm = reactive({
+  reason: ''
+})
+
+const addPointsForm = reactive({
+  userId: null,
+  username: '',
+  currentBalance: 0,
+  points: 1,
+  reason: ''
+})
+
+const subtractPointsForm = reactive({
+  userId: null,
+  username: '',
+  currentBalance: 0,
+  points: 1,
   reason: ''
 })
 
@@ -225,6 +452,16 @@ const auditRules = {
   reason: [
     { required: true, message: '请填写拒绝理由', trigger: 'blur' },
     { min: 5, message: '拒绝理由至少5个字符', trigger: 'blur' }
+  ]
+}
+
+const pointsRules = {
+  points: [
+    { required: true, message: '请输入积分数量', trigger: 'blur' },
+    { type: 'number', min: 1, message: '积分数量必须大于0', trigger: 'blur' }
+  ],
+  reason: [
+    { required: true, message: '请输入原因', trigger: 'blur' }
   ]
 }
 
@@ -327,17 +564,19 @@ const handleResetPassword = async (row) => {
     )
     
     const res = await resetUserPassword(row.userId || row.user?.id)
-    ElMessage.success(`密码重置成功！新密码为：${res.data.password}，请妥善保管并告知用户`)
+    
+    // 显示结果对话框
+    resetPasswordResult.value = {
+      username: row.username,
+      nickname: row.nickname,
+      password: res.data.password
+    }
+    resetPasswordResultVisible.value = true
   } catch (error) {
     if (error !== 'cancel') {
       // 响应拦截器已统一处理错误提示
     }
   }
-}
-
-// 查看详情
-const handleViewDetail = (row) => {
-  ElMessage.info(`查看用户 ${row.username} 的详情（功能待完善）`)
 }
 
 // 审核操作
@@ -404,6 +643,297 @@ const handleRemove = async (row) => {
     fetchData()
   } catch (error) {
     // 响应拦截器已统一处理错误提示
+  }
+}
+
+// ==================== 积分管理相关方法 ====================
+
+// 显示增加积分对话框
+const showAddPointsDialog = (row) => {
+  currentPointsUser.value = row
+  Object.assign(addPointsForm, {
+    userId: row.userId || row.user?.id,
+    username: row.username,
+    currentBalance: row.pointsBalance || 0,
+    points: 1,
+    reason: ''
+  })
+  addPointsVisible.value = true
+}
+
+// 提交增加积分
+const submitAddPoints = async () => {
+  if (!addPointsFormRef.value) return
+  
+  await addPointsFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    
+    submitLoading.value = true
+    try {
+      await addPoints(addPointsForm.userId, {
+        points: addPointsForm.points,
+        reason: addPointsForm.reason
+      })
+      ElMessage.success('积分增加成功')
+      addPointsVisible.value = false
+      fetchData()
+    } catch (error) {
+      // 响应拦截器已统一处理错误提示
+    } finally {
+      submitLoading.value = false
+    }
+  })
+}
+
+// 显示减少积分对话框
+const showSubtractPointsDialog = (row) => {
+  currentPointsUser.value = row
+  Object.assign(subtractPointsForm, {
+    userId: row.userId || row.user?.id,
+    username: row.username,
+    currentBalance: row.pointsBalance || 0,
+    points: 1,
+    reason: ''
+  })
+  subtractPointsVisible.value = true
+}
+
+// 提交减少积分
+const submitSubtractPoints = async () => {
+  if (!subtractPointsFormRef.value) return
+  
+  await subtractPointsFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    
+    if (subtractPointsForm.points > subtractPointsForm.currentBalance) {
+      ElMessage.error('减少的积分不能大于当前余额')
+      return
+    }
+    
+    submitLoading.value = true
+    try {
+      await subtractPoints(subtractPointsForm.userId, {
+        points: subtractPointsForm.points,
+        reason: subtractPointsForm.reason
+      })
+      ElMessage.success('积分减少成功')
+      subtractPointsVisible.value = false
+      fetchData()
+    } catch (error) {
+      // 响应拦截器已统一处理错误提示
+    } finally {
+      submitLoading.value = false
+    }
+  })
+}
+
+// 查看积分流水
+const viewTransactions = async (row) => {
+  currentPointsUser.value = row
+  transactionsPagination.page = 1
+  await fetchTransactions(row.userId || row.user?.id)
+  transactionsVisible.value = true
+}
+
+// 获取积分流水
+const fetchTransactions = async (userId) => {
+  transactionsLoading.value = true
+  try {
+    const res = await getPointTransactions(userId, {
+      page: transactionsPagination.page,
+      pageSize: transactionsPagination.pageSize
+    })
+    if (res.code === 200) {
+      transactionsData.value = res.data.list
+      transactionsPagination.total = res.data.total
+    }
+  } catch (error) {
+    // 响应拦截器已统一处理错误提示
+  } finally {
+    transactionsLoading.value = false
+  }
+}
+
+// 流水分页变化
+const handleTransactionsPageChange = (page) => {
+  transactionsPagination.page = page
+  if (currentPointsUser.value) {
+    fetchTransactions(currentPointsUser.value.userId || currentPointsUser.value.user?.id)
+  }
+}
+
+// 获取流水类型标签
+const getTransactionTypeTag = (type) => {
+  const map = {
+    add: 'success',
+    subtract: 'danger',
+    exchange: 'warning',
+    modify: 'info'
+  }
+  return map[type] || ''
+}
+
+// 获取流水类型文本
+const getTransactionTypeText = (type) => {
+  const map = {
+    add: '增加',
+    subtract: '减少',
+    exchange: '兑换',
+    modify: '修改'
+  }
+  return map[type] || type
+}
+
+// ==================== 导入导出相关方法 ====================
+
+// 下载模板
+const handleDownloadTemplate = async () => {
+  try {
+    const res = await downloadUserTemplate()
+    
+    // 创建 Blob 对象
+    const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    
+    // 创建下载链接
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `用户导入模板_${dayjs().format('YYYYMMDDHHmmss')}.xlsx`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    ElMessage.success('模板下载成功')
+  } catch (error) {
+    // 响应拦截器已统一处理错误提示
+  }
+}
+
+// 上传前验证
+const beforeUpload = (file) => {
+  const isExcel = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+                  file.type === 'application/vnd.ms-excel' ||
+                  file.name.endsWith('.xlsx') ||
+                  file.name.endsWith('.xls') ||
+                  file.name.endsWith('.csv')
+  if (!isExcel) {
+    ElMessage.error('只能上传 Excel 或 CSV 文件！')
+    return false
+  }
+  const isLt5M = file.size / 1024 / 1024 < 5
+  if (!isLt5M) {
+    ElMessage.error('文件大小不能超过 5MB！')
+    return false
+  }
+  return true
+}
+
+// 自定义上传请求
+const handleUploadRequest = async (options) => {
+  const { file } = options
+  
+  try {
+    const res = await importUsers(file)
+    
+    if (res.code === 200) {
+      // 设置结果
+      importResult.count = res.data.count || 0
+      importResult.users = res.data.users || []
+      
+      // 显示结果对话框
+      importResultVisible.value = true
+      
+      // 刷新列表
+      fetchData()
+    }
+  } catch (error) {
+    // 导入失败，显示错误信息（表格形式）
+    console.log('========== 导入错误调试信息 ==========')
+    console.log('完整 error 对象:', error)
+    console.log('error.response:', error.response)
+    console.log('error.response?.data:', error.response?.data)
+    console.log('========================================')
+    
+    // 尝试从多个位置获取错误数据
+    let errorData = {}
+    
+    if (error.response?.data) {
+      // 如果 data 是字符串，尝试解析 JSON
+      if (typeof error.response.data === 'string') {
+        try {
+          errorData = JSON.parse(error.response.data)
+        } catch (e) {
+          errorData = { message: error.response.data }
+        }
+      } else if (typeof error.response.data === 'object') {
+        errorData = error.response.data
+      }
+    }
+    
+    // 后端 error 函数把 errors 数组放在 data 字段中
+    const errors = errorData.data || []
+    const errorMsg = errorData.message || error.message || '导入失败'
+    
+    console.log('解析后的 errorData:', errorData)
+    console.log('解析后的 errors:', errors)
+    console.log('errors 类型:', typeof errors, Array.isArray(errors))
+    console.log('errors.length:', errors.length)
+    console.log('errorMsg:', errorMsg)
+    
+    if (errors.length > 0) {
+      // 设置错误数据并显示对话框
+      importError.message = errorMsg
+      importError.errors = errors
+      importErrorVisible.value = true
+    } else {
+      // 没有详细错误信息，使用 ElMessageBox
+      ElMessageBox.alert(
+        errorMsg,
+        '导入失败',
+        {
+          confirmButtonText: '知道了',
+          type: 'error',
+          closeOnClickModal: false,
+          closeOnPressEscape: false
+        }
+      )
+    }
+  }
+}
+
+// 下载导入结果（Excel 格式）
+const downloadImportResult = async () => {
+  if (!importResult.users || importResult.users.length === 0) {
+    ElMessage.warning('没有可下载的数据')
+    return
+  }
+  
+  try {
+    // 调用后端接口生成 Excel 文件
+    const { downloadImportResult } = await import('@/api')
+    const res = await downloadImportResult(importResult.users)
+    
+    // 创建 Blob 对象
+    const blob = new Blob([res], { 
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    })
+    
+    // 创建下载链接
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `用户导入结果_${dayjs().format('YYYYMMDDHHmmss')}.xlsx`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    ElMessage.success('下载成功')
+  } catch (error) {
+    console.error('下载失败:', error)
+    ElMessage.error('下载失败')
   }
 }
 
@@ -484,5 +1014,42 @@ onMounted(async () => {
   padding: 20px;
   text-align: center;
   font-size: 16px;
+}
+
+/* 导入错误弹框样式 */
+:deep(.import-error-dialog) {
+  width: 700px !important;
+}
+
+:deep(.import-error-dialog .el-message-box__content) {
+  padding: 20px;
+}
+
+/* 错误表格样式 */
+:deep(.import-error-dialog table.el-table) {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+:deep(.import-error-dialog table.el-table th.el-table__cell) {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
+  border: 1px solid #ebeef5;
+  padding: 12px 0;
+}
+
+:deep(.import-error-dialog table.el-table td.el-table__cell) {
+  border: 1px solid #ebeef5;
+  padding: 12px 0;
+}
+
+:deep(.import-error-dialog table.el-table tr.el-table__row--striped) {
+  background-color: #fafafa;
+}
+
+:deep(.import-error-dialog table.el-table tr.el-table__row:hover) {
+  background-color: #f5f7fa;
 }
 </style>
