@@ -48,3 +48,6 @@ coverage/
 *.db
 *.sqlite
 *.sqlite3
+
+# 上传文件目录
+backend/uploads/
